@@ -17,7 +17,7 @@ class Overlay:
     
 def SetMask(system,params, srcLayer, maskLayer, dstLayer):
     if srcLayer.FPN == dstLayer.FPN:
-        BALLE
+        ERRORCHECK
     
     srcLayer.ReadRasterLayer()
     maskLayer.ReadRasterLayer()
@@ -55,7 +55,7 @@ def Reclass(srcLayer, dstLayer, reclass, inplace = False):
     for item in reclass:
         if reclass[item]['op'] == '=': 
             if type(reclass[item]['val']) is list:
-                BALLE
+                ERRORCHECK
             else:
                 print ('ordinary reclass', item, 'to', reclass[item]['val'])
                 dstBAND[srcBAND == item] = reclass[item]['val']        

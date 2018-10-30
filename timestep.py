@@ -102,7 +102,7 @@ class TimeSteps:
             if not len(acqdatestr) == 4:
                 exitstr = 'len(acqdatestr) != 4'
                 exit(exitstr)
-            BALLE
+            ERRORCHECK
             #self.datumL.append({'acqdatestr':acqdatestr, 'timestep':'fiveyears'})
 
     def SingleStaticMonthlyStep(self,periodD):
@@ -114,7 +114,7 @@ class TimeSteps:
                 mstr = '0%(m)d' %{'m':m}
             else:
                 mstr = '%(m)d' %{'m':m} 
-            BALLE
+            ERRORCHECK
             #self.datumL.append({'acqdatestr':mstr, 'timestep':'staticmonthly'})
             
     def MonthlyDayTimeStepOld(self,periodD):
@@ -189,7 +189,7 @@ class TimeSteps:
                        
     def Varying(self):
         self.datumL.append({'acqdatestr':'varying', 'timestep':'varying'})
-        BALLE
+        ERRORCHECK
         
     def AllScenes(self, periodD):
         self.SetStartEndDates( periodD)
@@ -201,13 +201,13 @@ class TimeSteps:
         
     def Ignore(self):
         self.datumL.append({'acqdatestr':'ignore', 'timestep':'ignore'})
-        BALLE
+        ERRORCHECK
         
     def InPeriod(self):
         self.datumL.append({'acqdatestr':'inperiod', 'timestep':'inperiod','startdate':self.startdate, 'enddate':self.enddate})
             
     def FindVaryingTimestep(self,path):
-        BALLE
+        ERRORCHECK
         if os.path.exists(path):
             folders = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
             self.datumL = []
@@ -226,7 +226,7 @@ class TimeSteps:
         return mstr
 
     def SetAcqDateDOY(self):
-        BALLE
+        ERRORCHECK
         for d in self.datumL:
             acqdate = mj_dt.yyyymmddDate(d['acqdatestr'])
             #d['acqdatedaystr'] = mj_dt.DateToYYYYDOY( acqdate)

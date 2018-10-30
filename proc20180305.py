@@ -82,7 +82,7 @@ def CheckSetParamValues(tagAttrL, xmlOD):
                 flagga = False
                 warnstr = '        Warning: The required parameter "%(p)s" (%(s)s) is lacking in tag "%(t)s"'  %{'p':item[1],'s':s,'t':item[6]}
                 print (warnstr)
-                BALLE
+                ERRORCHECK
             else:
                 value = xmlOD[s] 
         elif s in xmlOD:
@@ -196,7 +196,7 @@ class VectorLayer(Layer):
         Layer.__init__(self, comp, locusD, datumD, filepath)
         if not 'shp' in filepath.hdrfiletype.lower():
             'Error in hdrfiletype for vector file'
-            BALLE
+            ERRORCHECK
 
     
     def CreateVectorAttributeDef(self,fieldDD): 
@@ -290,7 +290,7 @@ class RegionLayer(Layer):
         self.SetRegionPath()
         
     def _SetLayerPath(self):
-        BALLE
+        ERRORCHECK
         self._SetRegionPath()
         
     def _SetRegionPath(self):
@@ -345,7 +345,7 @@ class Location:
 
         else:
             print ('add division, system', division, system, processid)
-            BALLE
+            ERRORCHECK
         print ('self.locusD',self.locusD)
 
 class Composition:
@@ -514,13 +514,13 @@ class SetXMLProcess:
                 subTagAttrL = session._SelectProcessTagAttr(self.processid,tagAttr[6],tagAttr[1])
                 if len(subTagAttrL) == 0:
                     print ('subTagAttrL',subTagAttrL)
-                    BALLE
+                    ERRORCHECK
                 if type(element) is list:
                     for itm in element:
                         paramD, subItems = CheckSetParamValues(subTagAttrL, itm)
                         #the possible subelements
                         print ('tagname',tagName)
-                        FITTA
+                        ERRORCHECK
                         if tagName == 'node':   
                             if 'setvalue' in itm:
                                 paramD['setvalue'] = CheckSetValue(itm['setvalue'])
@@ -723,7 +723,7 @@ class SetXMLProcess:
                 else: # unrecognized pditem
                     exitstr = 'missing tag %s' %tagName
                     print (exitstr)
-                    BALLE
+                    ERRORCHECK
                     exit(exitstr)
 
         #Check if srcperiod and dstperiod are set, if not set to overall period        
@@ -775,7 +775,7 @@ class SetXMLProcess:
                     print (printstr) 
             print ('\n')
             #if self.processid =='addsubproc':
-            #    BALLE
+            #    ERRORCHECK
             if self.processid =='organizeancillary': # and self.paramsD['subprocid'] == 'regioncategories':
                 pass
         return True
@@ -864,7 +864,7 @@ class MainProc:
                 self.proc.srccompD[comp]['system'] = self.proc.systemD['srcsystem']
                 
             #print (self.proc.systemD['srcsystem'], self.proc.srccompD[comp]['system'])
-            #BALLE
+            #ERRORCHECK
             #self.compD[comp] = session._SelectComp( self.proc.srccompD[comp] )
             self.compD[comp] = session._SelectComp(self.proc.systemD['srcsystem'], self.proc.srccompD[comp])
             print ('self.compD[comp]',self.compD[comp])

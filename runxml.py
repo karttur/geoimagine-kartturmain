@@ -117,7 +117,7 @@ def ReadXMLProcesses(projFPN,verbose):
             #check that user has the right to this process
             permit = proc._CheckPermission(session)
             if not permit:
-                BALLE
+                ERRORCHECK
                 continue
             
 
