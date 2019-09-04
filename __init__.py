@@ -13,7 +13,7 @@ Author
 Thomas Gumbricht (thomas.gumbricht@karttur.com)
 
 """
-from .version import __version__, VERSION
+from .version import __version__, VERSION, metadataD
 #from .process import UserProj, SetXMLProcess, CheckSetParamValues
 from .proc20180305 import MainProc, Composition, LayerCommon, RegionLayer, VectorLayer, RasterLayer, UserProj, SetXMLProcess
 from .timestep import TimeSteps

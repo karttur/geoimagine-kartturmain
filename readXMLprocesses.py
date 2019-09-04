@@ -6,8 +6,7 @@ Created on 23 feb. 2018
 
 from os import path
 
-from geoimagine.postgresdb import  SelectProcess, SelectUser, SelectFileFormats, ManageAncillary, ManageSentinel, ManageLandsat
-from geoimagine.postgresdb import  ManageMODIS, ManageSMAP, ManageLayout, ManageExport, ManageSqlDumps 
+from geoimagine.postgresdb import  SelectProcess, SelectUser, ManageAncillary, ManageSentinel, ManageLandsat, ManageMODIS, ManageSMAP, ManageLayout, ManageExport, ManageSqlDumps 
 from geoimagine.postgresdb import ManageUserProj
 from geoimagine.ancillary import ProcessAncillary
 from geoimagine.sentinel import ProcessSentinel
@@ -15,7 +14,7 @@ from geoimagine.landsat import ProcessLandsat
 from geoimagine.modis import ProcessModis
 from geoimagine.smap import ProcessSmap
 from geoimagine.grace import ProcessGrace
-from geoimagine.timeseries import ProcessTimeSeries
+from geoimagine.timeseries import ProcessTimeSeries, ProcessTimeSeriesGraph
 from geoimagine.layout import ProcessLayout
 from geoimagine.export import ProcessExport
 from geoimagine.overlay import ProcessOverlay
@@ -37,22 +36,20 @@ import xmltodict
  
 def ReadXMLProcesses(projFPN,verbose):
     '''
-    Run processes
-    '''
-    srcFP = path.join(path.split(projFPN)[0],'xml')
-    #Read the textfile with links to the xml files defining schemas and tables
-    print ('reading',projFPN)
-    with open(projFPN) as f:
-        xmlL = f.readlines()
-    # Remove whitespace characters like `\n` at the end of each line
-    xmlL = [path.join(srcFP, x.strip())  for x in xmlL if len(x) > 10 and x[0] != '#'] 
+    Read processes
+    ''' 
 
-    #Get the fileformats required for all processing
-    '''
-    session = SelectFileFormats()
-    gdalofD = session._SelectGDALof()
-    session._Close()
-    '''
+    if path.splitext(projFPN)[1].lower() == '.xml':
+        xmlL = [projFPN]
+    else:
+        srcFP = path.join(path.split(projFPN)[0],'xml')
+        #Read the textfile with links to the xml files defining schemas and tables
+        print ('reading txt',projFPN)
+        with open(projFPN) as f:
+            xmlL = f.readlines()
+        # Remove whitespace characters like `\n` at the end of each line
+        xmlL = [path.join(srcFP, x.strip())  for x in xmlL if len(x) > 10 and x[0] != '#'] 
+
     #Loop over all xml files and setup the processes
     procLL = []
     for xml in xmlL:
@@ -120,26 +117,23 @@ def ReadXMLProcesses(projFPN,verbose):
             #check that user has the right to this process
             permit = proc._CheckPermission(session)
             if not permit:
-                NoPermitExit
+                exitstr = 'You do not have the required priveledges '
+                exit(exitstr)
                 continue
             #Check the input parameters
             errorD = proc._CheckParams(processD, session)
             procL.append(proc)
+
         #all the data is read, process the data
         procLL.append(procL)
         session._Close()
     return procLL
+    #return userProj, procLL
 
-
-def RunProcesses(procLL):
+def RunProcesses(procLL,verbose):
     for procL in procLL:
         #session = ReadUserCreds()
         for proc in procL:
-
-            print ('rootprocid',proc.rootprocid)
-            print ('processid',proc.processid)
-            print('overwrite',proc.overwrite)
-            SNULLE
             if proc.rootprocid == 'LayoutProc':
                 session = ManageLayout()
                 process = MainProc(proc,session,verbose)
@@ -183,7 +177,30 @@ def RunProcesses(procLL):
                 ProcessGrace(process,session,verbose)
                 session._Close()
                 
-            elif proc.rootprocid == 'TimeSeries':
+            elif proc.rootprocid in ['TimeSeries','TimeSeriesGraph']:
+                #Grace is treated as an ancillary layer, but has other processing capacity
+                if proc.systemD['system'] == 'smap':
+                    session = ManageSMAP()
+                elif proc.systemD['system'] == 'ancillary':
+                    session = ManageAncillary()
+                elif proc.systemD['system'] == 'grace':
+                    session = ManageAncillary()
+                elif proc.systemD['system'] == 'modis':
+                    session = ManageMODIS()
+                else:
+                    print (proc.systemD['system'])
+                    exitstr = 'system not available under Process TimeSeries'
+                    exit(exitstr)
+                
+                process = MainProc(proc,session,verbose)
+                
+                if proc.rootprocid == 'TimeSeries':
+                    ProcessTimeSeries(process,session,verbose)
+                else:
+                    ProcessTimeSeriesGraph(process,session,verbose)
+                session._Close()
+                
+            elif proc.rootprocid in ['Overlay','OverlaySpecial', 'Image','Scalar','Masking','Transform', 'Updatedb', 'DEM']:
                 #Grace is treated as an ancillary layer, but has other processing capacity
 
                 if proc.systemD['system'] == 'smap':
@@ -195,34 +212,13 @@ def RunProcesses(procLL):
                 elif proc.systemD['system'] == 'modis':
                     session = ManageMODIS()
                 else:
-                    SNULLE
-                
-                process = MainProc(proc,session,verbose)
-                ProcessTimeSeries(process,session,verbose)
-                session._Close()
-                
-            elif proc.rootprocid in ['Overlay','OverlaySpecial', 'Image','Scalar','Masking','Transform', 'Updatedb', 'DEM']:
-                #Grace is treated as an ancillary layer, but has other processing capacity
-                SNULLEBULLE
-                if proc.systemD['system'] == 'smap':
-                    session = ManageSMAP()
-                elif proc.systemD['system'] == 'ancillary':
-                    session = ManageAncillary()
-                elif proc.systemD['system'] == 'grace':
-                    session = ManageAncillary()
-                elif proc.systemD['system'] == 'modis':
-                    session = ManageMODIS()
-                else:
-                    print (proc.systemD['system'] )
-                    addsession
+                    exitstr = 'system %s not available under root %s' %(proc.systemD['system'], proc.rootprocid)
+                    exit(exitstr)
                     
                 process = MainProc(proc,session,verbose)
 
                 if proc.rootprocid in ['Overlay', 'OverlaySpecial']:
                     ProcessOverlay(process,session,verbose)
-                elif proc.rootprocid == 'DEM':
-                    DEM
-                    ProcessDEM(process,session,verbose)
                 elif proc.rootprocid == 'Image':
                     ProcessImage(process,session,verbose)
                 elif proc.rootprocid == 'Scalar':
@@ -236,11 +232,14 @@ def RunProcesses(procLL):
                     
                 elif proc.rootprocid == 'Updatedb':
                     ProcessUpdateDB(process,session,verbose)
+                    
+                elif proc.rootprocid == 'DEM':
+                    ProcessDEM(process,session,verbose)
                 
                 else:
-                    print (proc.rootprocid)
-                    addprocess
-                #Close session
+                    exitstr = 'Root process id not recognized %s' %(proc.rootprocid)
+                    exit(exitstr)
+
                 session._Close()
                 
             elif proc.rootprocid == 'Export':
@@ -249,8 +248,6 @@ def RunProcesses(procLL):
                 process = MainProc(proc,session,verbose)
                 ProcessExport(process,session,verbose)
                 session._Close()
-                
-            
                 
             elif proc.rootprocid == 'GdalUtilities':
                 #Grace is treated as an ancillary layer, but has other processing capacity
@@ -263,7 +260,8 @@ def RunProcesses(procLL):
                 elif proc.systemD['system'] == 'modis':
                     session = ManageMODIS()
                 else:
-                    SNULLE
+                    exitstr = 'system not recognozed under GdalUtil'
+                    exit(exitstr)
                 process = MainProc(proc,session,verbose)
                 ProcessGdalUtilities(process,session,verbose)
                 session._Close()
@@ -274,59 +272,11 @@ def RunProcesses(procLL):
                 process = MainProc(proc,session,verbose)
                 ProcessUserProj(process,session,verbose)
                 session._Close()
-                
             elif proc.rootprocid == 'ManageSqlDumps':
-                session = ManageSqldumps()
+                session = ManageSqlDumps()
                 process = MainProc(proc,session,verbose)
                 ProcessSqlDumps(process,session,verbose)
                 session._Close()
-                
-            elif proc.rootprocid == 'DEM':
-                DEMSNULLE
             else:
-                exitStr = 'EXITING: Unrecogised rootprocess in kartturmain.runxml: "%(r)s"' %{'r':proc.rootprocid}
-                print (exitStr)
-                fillifjonkan
+                exitStr = 'EXITING: Unrecogised rootprocess in kartturmain.readXMLprocesses: %(r)s' %{'r':proc.rootprocid}
                 exit(exitStr)
-    
-if __name__ == "__main__":
-    prodDB = 'postgres'
-
-    verbose = True
-
-    #Add additional users, projects and tracts
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/adduserproj/add_user_project-region_karttur.txt'
-   
-    #Import ancillary data and add to db
-    #projFN = '/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/ancillary/ancillary_karttur_setup_20180221_0.txt'
-
-    #projFN = '/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/climateindex/climindex_karttur_setup_20180221_0.txt'
-
-            
-    #projFN = '/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/IMERG/IMERG_import_20181104.txt'
-   
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/climateindex/climindex_karttur_setup_20180221_0.txt'
-    #Extract sentinel coords
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/sentinel/extract_sentinel_coords_20180808_0.txt'
-    #Get sentinel data
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/sentinel/get_sentinel_arktis_20180608_0.txt'
-    
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/landsat/extract_landsat_coords_20181007_0.txt'
-
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/MODIS/modis_20181009_0.txt'
-    #userProj, procLL = ReadXMLProcesses(projFN,verbose)
-    
-    #projFN ='/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/SMAP/smap_20181116.txt'
-        
-    #projFN = '/Users/thomasgumbricht/Dropbox/projects/geoimagine_mbpro/USERS/karttur/Okavango/okavango_20181129.txt'
-
-    procLL = ReadXMLProcesses(projFN,verbose)
-    '''
-    for procL in procLL:
-        for proc in procL:
-            print ('proc',proc)
-            print (proc.rootprocid)
-            print (proc.paramsD)
-            print (proc.overwrite)
-    '''
-    RunProcesses(procLL)

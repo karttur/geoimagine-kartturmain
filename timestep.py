@@ -8,51 +8,97 @@ from sys import exit
 import os
 import geoimagine.support.karttur_dt as mj_dt
 from geoimagine.ktpandas import PandasTS
+
      
 class TimeSteps:
     """Periodicity sets the time span, seasonality and timestep to process data for."""   
-    def __init__(self,periodD):
+    def __init__(self,periodD,timestep = False, verbose=0):
         """The constructor expects the following variables: int:timestep, date:startdate, date:enddate, [int:addons], [int:maxdaysaddons], [int:seasonstartDOY], [int:seasonendDOY]."""
+        self.verbose = verbose
         for key, value in periodD.items():
             setattr(self, key, value)
+        
+        if timestep:
+            #overrides the overall timestep with composition specific timestep
+            self.timestep = timestep
+        if self.verbose > 1:
+            print ('    Setting timestep',self.timestep)
         self.datumL = []
-        self.datumD = {}
+        self.datumD = {} 
+        self.pdTS = PandasTS(self.timestep)
         if not self.timestep:
             self.SetStaticTimeStep()
         elif self.timestep == 'static':
             self.SetStaticTimeStep()
         elif self.timestep == 'singledate':
-            self.SingleDateTimeStep()
+            self.SingleDateTimeStep(periodD)
         elif self.timestep == 'singleyear':
             self.SingleYearTimeStep(periodD)
-        elif self.timestep == 'staticmonthly':
+        elif self.timestep in ['staticmonthly','static-M','static-MS']:
             self.SingleStaticMonthlyStep(periodD)
         elif self.timestep == 'fiveyears':
             self.FiveYearStep(periodD)
-        
+        elif self.seasonalts:
+            self._SetSeasonalTS(periodD)
         else:
             self.SetStartEndDates(periodD)
-            if self.timestep in ['M','MS','monthly','monthlyday']:
-                self.MonthlyTimeStep(periodD)
+            self.SetSeasonStartEndDates(periodD)
+            
+            if self.timestep in ['A','AS','annual']:
+                self.startdatestr = self.startdatestr[0:4]
+                self.enddatestr = self.enddatestr[0:4]
+                self.pandasCode = 'A'
+                self.SetAstep()
+                
+            elif self.timestep in ['timespan-A']:
+                self.startdatestr = self.startdatestr[0:4]
+                self.enddatestr = self.enddatestr[0:4]
+                self.pandasCode = 'A'
+                self.SetAtimespan()
+                
+            elif self.timestep in ['timespan-M','timespan-MS']:
                 self.startdatestr = self.startdatestr[0:6]
                 self.enddatestr = self.enddatestr[0:6]
-                self.pandasCode = 'MS'
-                self.SetMstep(periodD)
+                self.pandasCode = 'M'
+                self.SetMtimespan()
+                
+            elif 'timespan-' in self.timestep:
+                #must be 'timespan-XXD'
+                startdate = mj_dt.yyyymmddDate(self.startdatestr)
+                enddate = mj_dt.yyyymmddDate(self.enddatestr)
+                self.startdatestr = mj_dt.DateToYYYYDOY(startdate)
+                self.enddatestr = mj_dt.DateToYYYYDOY(enddate)
+                dstep = self.timestep.split('-')[1]
+                dstep = int(dstep[0:len(dstep)-1])
+                self.pandasCode = '%(s)dD' %{'s':dstep}
+                self.SetxDtimespan(dstep)
 
+                
+            elif self.timestep in ['M','MS','monthly','monthlyday']:
+                #self.MonthlyTimeStep(periodD)
+                #self.startdatestr = self.startdatestr[0:6]
+                #self.enddatestr = self.enddatestr[0:6]
+                self.pandasCode = 'MS'
+                self.SetMstep()
+            elif self.timestep[0:8] == 'autocorr': 
+                self._SetAutoCorrTS(periodD)
+            elif self.timestep in ['seasonal-M', 'seasonal-Mday']:
+                self._SetSeasonalTS(periodD)
             elif self.timestep == 'varying':
                 self.Varying(periodD)
-            elif self.timestep == 'allscenes':
+            elif self.timestep in ['allscenes','anyscene']:
                 self.AllScenes(periodD)
             elif self.timestep == 'inperiod':
                 self.InPeriod(periodD)
             elif self.timestep == 'ignore':
                 self.Ignore(periodD)
-            elif self.timestep[len(self.timestep)-1] == 'D':
+            elif self.timestep == 'D':
                 self.SetDstep()
-            elif self.timestep == '8D':
-                self.SetDstep()
-            elif self.timestep == '16D':
-                self.SetDstep(periodD)
+            elif self.timestep[-1] == 'D':
+                if (self.timestep[0:8] == 'seasonal'):
+                    self._SetSeasonalTS(periodD)
+                else:
+                    self.SetXDstep()
             else:
                 exitstr = 'Unrecognized timestep in class TimeSteps %s' %(self.timestep)
                 exit(exitstr)
@@ -92,6 +138,11 @@ class TimeSteps:
         acqdate = mj_dt.SetYYYY1Jan(int(acqdatestr))
 
         self.datumD[acqdatestr] = {'acqdate':acqdate, 'acqdatestr':acqdatestr}
+        
+    def SingleDateTimeStep(self,periodD):
+        self.startdate = self.enddate = mj_dt.IntYYYYMMDDDate(periodD['startyear'],periodD['startmonth'],periodD['startday'])       
+        self.startdatestr = self.enddatestr = mj_dt.DateToStrDate(self.startdate)
+        self.datumD[self.startdatestr] = {'acqdate':self.startdate, 'acqdatestr':self.startdatestr}
     
     def FiveYearStep(self,periodD):
         if not periodD['startyear'] < periodD['endyear'] or periodD['startyear'] < 1000 or periodD['endyear'] > 9999:
@@ -102,7 +153,7 @@ class TimeSteps:
             if not len(acqdatestr) == 4:
                 exitstr = 'len(acqdatestr) != 4'
                 exit(exitstr)
-            ERRORCHECK
+            BALLE
             #self.datumL.append({'acqdatestr':acqdatestr, 'timestep':'fiveyears'})
 
     def SingleStaticMonthlyStep(self,periodD):
@@ -114,100 +165,255 @@ class TimeSteps:
                 mstr = '0%(m)d' %{'m':m}
             else:
                 mstr = '%(m)d' %{'m':m} 
-            ERRORCHECK
-            #self.datumL.append({'acqdatestr':mstr, 'timestep':'staticmonthly'})
-            
-    def MonthlyDayTimeStepOld(self,periodD):
-        mstr = self.MonthToStr(periodD['startmonth'])
-        yyyymmdd = '%(yyyy)s%(mm)s01' %{'yyyy':periodD['startyear'],'mm':mstr }
-        startmonth = mj_dt.yyyymmddDate(yyyymmdd)
-        mstr = self.MonthToStr(periodD['endmonth'])
-        yyyymmdd = '%(yyyy)s%(mm)s01' %{'yyyy':periodD['endyear'],'mm':mstr }
-        endmonth = mj_dt.yyyymmddDate(yyyymmdd)
-        acqdatestr = mj_dt.DateToStrDate(startmonth)
-        self.datumL.append({'acqdatestr':acqdatestr[0:6], 'timestep':'monthlyday'})
-        monthday = startmonth
-        while monthday < endmonth:
-            monthday = mj_dt.AddMonth(monthday)
-            acqdatestr = mj_dt.DateToStrDate(monthday)
-            #Only set the month, for ile structure consistency
-            pass
-            #self.datumL.append({'acqdatestr':acqdatestr[0:6], 'timestep':'monthlyday'})
-            
-    def MonthlyTimeStep(self,periodD):
-        #get start date
-        mstr = self.MonthToStr(periodD['startmonth'])
-        yyyymmdd = '%(yyyy)s%(mm)s01' %{'yyyy':periodD['startyear'],'mm':mstr }
-        startdate = mj_dt.yyyymmddDate(yyyymmdd)
+            self.datumL.append(mstr)
+            self.datumD[mstr] = {'acqdatestr':mstr, 'acqdate':False, 'season':m}
+        self.timestep = 'static-M'
 
-        #get end date
-        mstr = self.MonthToStr(periodD['endmonth'])
-        yyyymm = '%(yyyy)s%(mm)s' %{'yyyy':periodD['endyear'],'mm':mstr }
-        enddate = mj_dt.YYYYMMtoYYYYMMDD(yyyymm,32)
-
-        #yyyymmdd = '%(yyyy)s%(mm)s31' %{'yyyy':periodD['endyear'],'mm':mstr }
-        #endmonth = mj_dt.yyyymmddDate(yyyymmdd)
-        acqdatestr = mj_dt.DateToStrDate(startdate)
-        acqdate = startdate
-        self.datumL.append({'acqdate':acqdate, 'acqdatestr':acqdatestr[0:6], 'timestep':'MS'})
-        while True:
-            acqdate = mj_dt.AddMonth(acqdate,1)
-            if acqdate > enddate:
-                break
-            acqdatestr = mj_dt.DateToStrDate(acqdate)
-            self.datumL.append({'acqdate':acqdate, 'acqdatestr':acqdatestr[0:6], 'timestep':'MS'})
+        self.moviedatum = 'static-M' 
         
+    def _SetSeasonalTS(self,periodD):  
+        '''
+        '''
+        if self.timestep in ['M','MS','monthly','monthlyday','seasonal-M','seasonal-mday']:
+            #Get the mpnth of the first date set
+            m = periodD['startmonth']
+            datumD = {1:'01',2:'02',3:'03',4:'04',5:'05',6:'06',7:'07',8:'08',9:'09',10:'10',11:'11',12:'12'}
+            timespan = '%s-%s' %(self.startyear, self.endyear)
+            datumL = []
+            datumL.append(datumD[m])
+            #Loop forward until a complete year is finished
+            while True:
+                m += 1
+                if m > 12:
+                    m = 1
+                if m == int(datumL[0]):
+                    break
+                datumL.append(datumD[m])
+            for datum in datumL:
+                datum = '%s@M%s' %(timespan,datum)
+                self.datumL.append(datum)
+                self.datumD[datum] = {'acqdatestr':datum, 'acqdate':False, 'season':m}
+            self.timestep = 'seasonal-M'
+
+        elif self.timestep[len(self.timestep)-1] == 'D':
+            if (self.timestep[0:8] == 'seasonal'):
+                step = self.timestep.split('-')[1]
+                midstep = 0
+                
+                self.dstep = self.periodstep = int(step[0:len(step)-1])
+                midstep  = int(self.dstep/2)
+            else:
+                self.dstep = self.periodstep = int(self.timestep[0:len(self.timestep)-1])
+                midstep  = int(self.dstep/2)
+            self.SetStartEndDates(periodD)
+            
+            doy = mj_dt.DateToDOY(self.startdate)
+            #Find the lowest doy (1 or higher)
+            inidoy = doy
+            if self.dstep <= 0:
+                print (self.dstep)
+                ERROR
+            while True:
+                if inidoy - self.dstep <= 0:
+                    break
+                inidoy -= self.dstep
+
+            #Get the doy of the first date set
+            datumL = []
+            doy = mj_dt.DateToDOY(self.startdate)
+            doy += midstep
+            #Find the lowest doy (1 or higher)
+            inidoy = doy
+            while True:
+                if inidoy - self.dstep <= 0:
+                    break
+                inidoy -= self.dstep
+
+            datumL.append(mj_dt.DoyStr(doy))
+            #Loop forward until a complete year is finished
+            while True:
+                doy += self.dstep
+                if doy > 365:
+                    doy = inidoy
+                if doy == int(datumL[0]):
+                    break
+                datumL.append(mj_dt.DoyStr(doy))
+            timespan = '%s-%s' %(self.startyear, self.endyear)
+            for d in datumL:
+                datum = '%s@D%s' %(timespan,d)
+                self.datumL.append(datum)
+                season = 1+int((int(d)-int(inidoy))/self.dstep)
+                self.datumD[datum] = {'acqdatestr':datum, 'acqdate':False, 'season':season}
+                
+            self.timestep = 'seasonal-%(t)s' %{'t':self.timestep}
+
+            self.moviedatum = '%s@%sD' %(timespan,self.dstep)
+
+        else:
+            NOTYEAT
+        
+    def _SetAutoCorrTS(self,periodD):  
+        '''
+        '''
+        datumL = []
+        timespan = '%s-%s' %(self.startyear, self.endyear)
+        if self.timestep in ['autocorr-M','autocorr-MS']:
+            #Get the mpnth of the first date set
+            #Always skip the first autocrr, by default = 1
+            for t in range(1,periodD['nlags']+1):
+                #t -= periodD['mirror']
+                if periodD['mirror'] > 0 and t > periodD['mirror']:
+                    #t =  periodD['mirror']*2 - t 
+                    lag = 'lag%(dt)d' %{'dt':t-periodD['nlags']}
+                else:
+                    lag = 'lag%(dt)d' %{'dt':t}
+                datum = '%s@M%s' %(timespan,lag)
+                self.datumL.append(datum)
+                self.datumD[datum] = {'acqdatestr':datum, 'acqdate':False, 'season':t}
+                self.timestep = 'autocorr-M'
+
+        elif self.timestep[len(self.timestep)-1] == 'D':
+            FIX
+
+        else:
+            NOTYEAT
+            
     def SetDstep(self):
-        print ('Setting Dstep',self.timestep)
-
-        pdTS = PandasTS(self.timestep)
-        
-        npTS = pdTS.SetDatesFromPeriod(self) 
-        for d in range(npTS.shape[0]):
-            acqdate = npTS[d].date()
-            acqdatestr = mj_dt.DateToStrDate(acqdate)
-            
+        self.pdTS = PandasTS(self.timestep)
+        npTS = self.pdTS.SetDatesFromPeriod(self) 
+        #lastDate = npTS[-1]
+        self.pandasCode = self.timestep
+        for d in npTS:
+            acqdate = d.date()
+            acqdatestr =mj_dt.DateToStrDate(acqdate)         
             self.datumL.append(acqdatestr)
             self.datumD[acqdatestr] = {'acqdate':acqdate, 'acqdatestr':acqdatestr}
 
-            '''
-            self.datumL.append({'acqdate':acqdate, 'acqdatestr':acqdatestr, 'timestep':self.timestep})
-            #self.processDateL.append(npTS[d].date())
-            self.processDateD[acqdate] = {'acqdate':acqdate,'acqdatestr':acqdatestr, 'acqdate':npTS[d].date(),'timestep':self.timestep}
-            #self.pandasDateL.append(npTS[d].date())
-            '''
-    
+    def SetXDstep(self):
+        '''
+        '''
+        self.pdTS = PandasTS(self.timestep)
+        step = int(self.timestep[0:len(self.timestep)-1])
+        self.dstep = step
+        midstep  = int(step/2)
+        #Step with the dates set to end of each period
+        npTSEnds = self.pdTS.SetDatesFromPeriodEnds(self,step)
+
+        lastPeriodDate = npTSEnds[-1]
+        npTS = self.pdTS.SetDatesFromPeriod(self) 
+        lastDate = npTS[-1]
+
+        self.pandasCode = self.timestep
+        #Added midstep again 20 nov 2018
+
+        if lastDate > lastPeriodDate:
+            rng = npTS.shape[0]-1
+        else:
+            rng = npTS.shape[0]
+        doy = mj_dt.DateToDOY(self.startdate)
+        #Find the lowest doy (1 or higher)
+        inidoy = doy
+        if self.dstep <= 0:
+            print (self.dstep)
+            ERROR
+        while True:
+            if inidoy - self.dstep <= 0:
+                break
+            inidoy -= self.dstep 
+        for d in range(rng):
+            acqdate = npTS[d].date()
+            
+            #Here comes the trick, the acqdatestr for D data (whihc is a span) is always the central day
+            
+            acqlastdate = mj_dt.DeltaTime(acqdate, step-1-midstep)
+            
+            if acqlastdate <= self.enddate:
+         
+                doy = mj_dt.DateToDOY(acqdate)
+                acqmiddate = mj_dt.DeltaTime(acqdate, midstep)
+                acqdatestr = mj_dt.DateToYYYYDOY(acqmiddate)
+                self.datumL.append(acqdatestr)
+                season = 1+int((doy-inidoy)/self.dstep)
+                firstdate = acqdate
+                lastdate = mj_dt.DeltaTime(acqdate, step-1)
+                self.datumD[acqdatestr] = {'acqdate':acqdate, 'acqdatestr':acqdatestr, 'season':season,'firstdate':firstdate,'lastdate':lastdate}
+            else:
+                print ('discarded',acqdate,acqlastdate,self.enddate,step-1-midstep)
+        self.moviedatum = '%s-%s' %(self.datumL[0], self.datumL[len(self.datumL)-1])
+        
     def SetMstep(self):
-        pdTS = PandasTS(self)
-        npTS = pdTS.SetMonthsFromPeriod(self)
-        for d in range(npTS.shape[0]):
+        self.dstep = self.periodstep = 0
+        self.pdTS = PandasTS(self.timestep) 
+        npTS = self.pdTS.SetMonthsFromPeriod(self)
+        #npTS = self.pdTS.SetDatesFromPeriod(self) 
+        for d in range(npTS.shape[0]):  
             acqdate = npTS[d].date()
 
-            acqdatestr = mj_dt.DateToStrDate(npTS[d])
-            self.processDateD[acqdate] = {'acqdatestr':acqdatestr[0:6], 'acqdate':acqdate,'timestep':self.timestep}
-            BALE
+            acqlastdate = mj_dt.AddMonth(acqdate, 1)
+            acqlastdate = mj_dt.DeltaTime(acqlastdate, -1)
+            if acqlastdate <= self.enddate:
+                acqdatestr = mj_dt.DateToStrDate(acqdate)
+                if self.timestep in ['monthlyday']:
+                    pass
+                else:
+                    acqdatestr = acqdatestr[0:6]
+                self.datumL.append(acqdatestr)
+                self.datumD[acqdatestr] = {'acqdate':acqdate, 'acqdatestr':acqdatestr,  'season':acqdate.month}
+        
+                
+        self.moviedatum = '%s-%s' %(self.datumL[0], self.datumL[len(self.datumL)-1])
+        
+    def SetAstep(self):
+        pdTS = PandasTS(self.timestep)
+        npTS = pdTS.SetYearsFromPeriod(self)
+
+        for year in npTS:
+            acqdate = mj_dt.IntYYYYMMDDDate(year,self.startdate.month,self.startdate.day)
+            acqdatestr = '%(y)d' %{'y':year}
+            self.datumL.append(acqdatestr)
+            self.datumD[acqdatestr] = {'acqdate':acqdate, 'acqdatestr':acqdatestr}
+  
+    def SetAtimespan(self):
+        acqdatestr = '%s-%s' %(self.startdatestr,self.enddatestr)
+        self.datumL = [acqdatestr]
+        self.datumD[acqdatestr] = {'acqdate':False, 'acqdatestr':acqdatestr}
+        
+    def SetMtimespan(self):
+        '''
+        '''
+        acqdatestr = '%s-%s@M' %(self.startdatestr,self.enddatestr)
+        self.datumL = [acqdatestr]
+        self.datumD[acqdatestr] = {'acqdate':False, 'acqdatestr':acqdatestr}
+        
+    def SetxDtimespan(self,x):
+        '''
+        '''
+        #TGTODO Change the length fo timestamp to 20 and return to the below
+        #acqdatestr = '%s-%s@%sD' %(self.startdatestr,self.enddatestr,x)
+        acqdatestr = '%s-%s@D' %(self.startdatestr,self.enddatestr)
+        self.datumL = [acqdatestr]
+        self.datumD[acqdatestr] = {'acqdate':False, 'acqdatestr':acqdatestr}
                        
     def Varying(self):
         self.datumL.append({'acqdatestr':'varying', 'timestep':'varying'})
-        ERRORCHECK
+        BALLE
         
     def AllScenes(self, periodD):
         self.SetStartEndDates( periodD)
         self.SetSeasonStartEndDates( periodD )
         #self.datumL.append({'acqdatestr':'allscenes', 'timestep':'allscenes'})
         self.datumL.append('all')
-        self.datumD['all'] = {'acqdate':'all', 'acqdatestr':'all', 'startdate':self.startdate, 'enddate':self.enddate, 'startdoy':self.startdoy, 'enddoy':self.enddoy}
-
-        
+        self.datumD['all'] = {'acqdate':False, 'acqdatestr':'all', 'startdate':self.startdate, 'enddate':self.enddate, 'startdoy':self.startdoy, 'enddoy':self.enddoy}
+   
     def Ignore(self):
         self.datumL.append({'acqdatestr':'ignore', 'timestep':'ignore'})
-        ERRORCHECK
+        BALLE
         
     def InPeriod(self):
         self.datumL.append({'acqdatestr':'inperiod', 'timestep':'inperiod','startdate':self.startdate, 'enddate':self.enddate})
             
     def FindVaryingTimestep(self,path):
-        ERRORCHECK
+        BALLE
         if os.path.exists(path):
             folders = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
             self.datumL = []
@@ -226,7 +432,7 @@ class TimeSteps:
         return mstr
 
     def SetAcqDateDOY(self):
-        ERRORCHECK
+        BALLE
         for d in self.datumL:
             acqdate = mj_dt.yyyymmddDate(d['acqdatestr'])
             #d['acqdatedaystr'] = mj_dt.DateToYYYYDOY( acqdate)
