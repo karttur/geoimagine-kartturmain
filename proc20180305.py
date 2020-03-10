@@ -20,12 +20,12 @@ def CheckSetValue(xmlOD):
             paramL = ['value','label']
             valueL = [ item['@value'], item['@label'] ]
             D = dict(zip(paramL,valueL))
-            L.append(D)        
+            L.append(D)
     else:
         paramL = ['value','label']
-        valueL = [ xmlOD['@value'], xmlOD['@label'] ]  
+        valueL = [ xmlOD['@value'], xmlOD['@label'] ]
         D = dict( zip(paramL,valueL) )
-        L.append(D) 
+        L.append(D)
     return L
 
 def CheckSetMinMax(xmlOD):
@@ -44,7 +44,7 @@ def CheckSetMinMax(xmlOD):
     return {'min':xmlOD['@min'], 'max':xmlOD['@max']}
 
 def BoolTag(booltag):
-        if booltag == '': 
+        if booltag == '':
             return False #i.e. no item given, assume False
         if booltag[0].lower() == 'n' or booltag.lower() == 'false':
             return False
@@ -63,7 +63,7 @@ def CheckSetParamValues(tagAttrL, xmlOD, xml):
     valueL = []
     errorD = {}
     subItems = []
-    for item in tagAttrL:  
+    for item in tagAttrL:
         if item[0] == 'E':
             subItems.append(item[1])
             continue
@@ -86,7 +86,7 @@ def CheckSetParamValues(tagAttrL, xmlOD, xml):
                 SNULLE
                 exit()
             else:
-                value = xmlOD[s] 
+                value = xmlOD[s]
         elif xmlOD == None:
             value = item[4]
         elif s in xmlOD:
@@ -124,14 +124,14 @@ class LayerCommon:
     '''
     def __init__(self):
         pass
-    
+
     def _SetDOY(self):
         self.datum.doyStr = mj_dt.YYYYDOYStr(self.datum.acqdate)
         self.datum.doy = int(self.datum.doyStr)
-        
+
     def _SetAcqdateDOY(self):
         self.datum.acqdatedoy = mj_dt.DateToYYYYDOY(self.datum.acqdate)
-        
+
     def _SetBounds(self,epsg,minx,miny,maxx,maxy):
         self.epsg = epsg
         self.minx = minx
@@ -139,11 +139,11 @@ class LayerCommon:
         self.maxx = maxx
         self.maxy = maxy
         self.BoundsPtL = ( (minx,maxy),(maxx,maxy),(maxx,miny), (minx,miny) )
-        
+
     def _Update(self, upD):
         for key in upD:
             setattr(self, key, upD[key])
-        
+
     def _Exists(self):
         """checks if the layer file exists; creates the folder path to the layer if non-existant."""
         if path.isfile(self.FPN):
@@ -157,25 +157,25 @@ class LayerCommon:
 
     def _SetPath(self):
         """Sets the complete path to the file"""
-        self.FN = '%(prefix)s_%(prod)s_%(reg)s_%(d)s_%(suf)s%(e)s' %{'prefix':self.comp.prefix,'prod':self.comp.product,'reg':self.locus.locus, 'd':self.datum.acqdatestr, 'suf':self.comp.suffix,'e':self.path.ext}            
+        self.FN = '%(prefix)s_%(prod)s_%(reg)s_%(d)s_%(suf)s%(e)s' %{'prefix':self.comp.prefix,'prod':self.comp.product,'reg':self.locus.locus, 'd':self.datum.acqdatestr, 'suf':self.comp.suffix,'e':self.path.ext}
         if self.movieframe:
             self.FP = path.join('/Volumes',self.path.volume, self.comp.system, self.comp.source, self.comp.division, self.comp.folder, self.locus.path, 'images')
         elif self.movieclock:
             self.FP = path.join('/Volumes',self.path.volume, self.comp.system, self.comp.source, self.comp.division, self.comp.folder, self.locus.path, 'clock')
         else:
             self.FP = path.join('/Volumes',self.path.volume, self.comp.system, self.comp.source, self.comp.division, self.comp.folder, self.locus.path, self.datum.acqdatestr)
-   
+
         self.FPN = path.join(self.FP,self.FN)
         if ' ' in self.FPN:
             exitstr = 'EXITING FPN contains space %s' %(self.FPN)
             exit(exitstr)
-         
+
     def _Register(self,session):
         pass
-            
+
 class Layer(LayerCommon):
     """Layer is the parentid class for all spatial layers."""
-    def __init__(self, composition, locusD, datumD, filepath, movieframe = False, movieclock = False): 
+    def __init__(self, composition, locusD, datumD, filepath, movieframe = False, movieclock = False):
         """The constructor expects an instance of the composition class."""
 
         LayerCommon.__init__(self)
@@ -213,19 +213,19 @@ class Layer(LayerCommon):
             else:
                 self.path.dat = '.%s' %(self.path.datfiletype)
         self._SetPath()
-     
+
 class VectorLayer(Layer):
     '''Class for vector data layer
     '''
-    def __init__(self, comp, locusD, datumD, filepath): 
+    def __init__(self, comp, locusD, datumD, filepath):
         '''Constructor expects a composition, a locus a date and a filepath
         '''
         Layer.__init__(self, comp, locusD, datumD, filepath)
         if not 'shp' in filepath.hdrfiletype.lower():
-            
+
             print ('Error in hdrfiletype for vector file',filepath.hdrfiletype)
             exit()
-    def CreateVectorAttributeDef(self,fieldDD): 
+    def CreateVectorAttributeDef(self,fieldDD):
         '''Vector attribute table definition
         '''
         fieldDefD = {}
@@ -246,10 +246,10 @@ class VectorLayer(Layer):
                 keyfield = fieldD['field']
             else:
                 keyfield = False
-            fieldDefD[key] = {'type':fieldD['type'].lower(), 'width':width, 'precision': precision, 'transfer': fieldD['transfer'].lower(), 'source':fieldD['source'], 'keyfield':keyfield}      
+            fieldDefD[key] = {'type':fieldD['type'].lower(), 'width':width, 'precision': precision, 'transfer': fieldD['transfer'].lower(), 'source':fieldD['source'], 'keyfield':keyfield}
         for key in fieldDefD:
             self.fieldDefL.append(mj_gis.FieldDef(key,fieldDefD[key]))
-     
+
     def OpenVector(self):
         '''Open existing vector file
         '''
@@ -258,10 +258,10 @@ class VectorLayer(Layer):
             geom = mj_gis.Geometry()
             #add the feature and extract the geom
             geom.GeomFromFeature(feature)
-            
+
     def _GetBounds(self):
         srcDS,srcLayer,fieldDefL = mj_gis.ESRIOpenGetLayer(self.FPN,'read')
-        
+
         self.spatialRef = mj_gis.MjProj()
         self.spatialRef.SetProj(srcLayer.spatialRef)
         for feature in srcLayer.layer:
@@ -270,62 +270,62 @@ class VectorLayer(Layer):
             geom.GeomFromFeature(feature)
             self.minx, self.miny, self.maxx, self.maxy = geom.shapelyGeom.bounds
         self.spatialRef.ReadSpatialRef()
-        
+
         self.BoundsPtL = ( (self.minx,self.maxy),(self.maxx,self.maxy),(self.maxx,self.miny), (self.minx,self.miny) )
 
-            
+
 class SVGLayer(Layer):
     '''Class for vector data layer
     '''
-    def __init__(self, comp, locusD, datumD, filepath): 
+    def __init__(self, comp, locusD, datumD, filepath):
         '''Constructor expects a composition, a locus a date and a filepath
         '''
         Layer.__init__(self, comp, locusD, datumD, filepath)
         if not 'svg' in filepath.hdrfiletype.lower():
-            
+
             print ('Error in hdrfiletype for vector file',filepath.hdrfiletype)
             exit()
-            
+
 class MapLayer(Layer):
     '''Class for vector data layer
     '''
-    def __init__(self, comp, locusD, datumD, filepath): 
+    def __init__(self, comp, locusD, datumD, filepath):
         '''Constructor expects a composition, a locus a date and a filepath
         '''
         Layer.__init__(self, comp, locusD, datumD, filepath)
-        if filepath.hdrfiletype.lower() not in ['png','pdf','html','show']:     
+        if filepath.hdrfiletype.lower() not in ['png','pdf','html','show']:
             print ('Error in hdrfiletype for map lyaout file',filepath.hdrfiletype)
             exit()
-      
+
 class RasterLayer(Layer):
     '''Class for raster data layer
     '''
     def __init__(self, comp, locusD, datumD, filepath):
         '''Constructor expects a composition, a locus a date and a filepath
-        ''' 
+        '''
         Layer.__init__(self, comp, locusD, datumD, filepath)
-        
+
     def GetRastermetadata(self):
         #TGTODO THIS AND NEXT MUST BE REDUNDANT- NO IT IS JUST IN IMPORT OF ANCIAARY
         self.spatialRef, self.metadata = mj_gis.GetRasterMetaData(self.FPN)
         #transfer cellnull and celltype to composition
         self.comp.spatialRef = self.spatialRef
         self.comp.metadata = self.metadata
-             
+
     def ReadRasterLayer(self,**kwargs):
         readD = {'mode':'edit','complete':True,'flatten':True}
         if kwargs is not None:
             for key, value in kwargs.items():
                 readD[key] = value
         self.layer =  mj_gis.ReadRasterArray(self.FPN, readD)
-     
+
     def CreateDstLayer(self,**kwargs):
         writeD = {'mode':'edit','complete':True,'flatten':True}
         if kwargs is not None:
             for key, value in kwargs.items():
                 writeD[key] = value
         self.layer =  mj_gis.RasterCreateWithFirstLayer(self.FPN, writeD)
-     
+
     def RasterOpenGetFirstLayer(self,**kwargs):
         modeD = {'mode':'read'}
         if kwargs is not None:
@@ -334,27 +334,27 @@ class RasterLayer(Layer):
                 #setattr(self, key, value)
         self.DS,self.layer = mj_gis.RasterOpenGetFirstLayer(self.FPN,modeD)
         self.GetGeoFormatD()
-        
+
     def RasterCreateWithFirstLayer(self,layer):
         self.dstDS = mj_gis.RasterCreateWithFirstLayer(self.FPN,layer)
-        
+
     def GetGeoFormatD(self):
         self.geoFormatD = {'lins':self.layer.lins,'cols':self.layer.cols,'projection':self.layer.projection,'geotrans':self.layer.geotrans,'cellsize':self.layer.cellsize}
-        
+
     def SetGeoFormat(self,geoFormatD):
         """Sets the geoFormat
             Expects a dict with {['lins'],['cols'],['projection'],['geotrans'],['cellsize']}
-        """ 
+        """
         for key, value in geoFormatD.items():
             setattr(self, key, value)
-        
+
     def CreateDSWriteRasterArray(self,**kwargs):
         writeD = {'complete':True, 'of':'GTiff'}
         if kwargs is not None:
             for key, value in kwargs.items():
                 writeD[key] = value
         mj_gis.CreateDSWriteRasterArray(self, writeD)
-      
+
     def ReadSrcLayer(self):
         ''' Opens and reads a complete raster file, and reads the geoformat, file is then closed'''
         self.ReadRasterLayer(complete= True, flatten = False, mode='edit')
@@ -367,41 +367,41 @@ class RasterLayer(Layer):
         itemL = ['lins','cols','projection','geotrans','cellsize']
         for item in itemL:
             setattr(self.layer, item, getattr(otherLayer,item))
-        
+
     def DeleteLayer(self):
         pass
-    
-class MovieFrame(Layer):  
+
+class MovieFrame(Layer):
     '''Class for movieframe as layer
     '''
-    def __init__(self, comp, locusD, datumD, filepath): 
+    def __init__(self, comp, locusD, datumD, filepath):
         Layer.__init__(self, comp, locusD, datumD, filepath, True)
-           
-class MovieClock(Layer): 
+
+class MovieClock(Layer):
     '''Class for movieclock frame as layer
-    ''' 
-    def __init__(self, comp, locusD, datumD, filepath): 
+    '''
+    def __init__(self, comp, locusD, datumD, filepath):
         Layer.__init__(self, comp, locusD, datumD, filepath, False, True)
-     
-class RegionLayer(Layer): 
+
+class RegionLayer(Layer):
     '''Class for regional (arbitary) layer
     '''
-    def __init__(self,comp, location, datum): 
+    def __init__(self,comp, location, datum):
         """The constructor expects an instance of the composition class."""
         Layer.__init__(self, comp, datum)
-        
+
         self.layertype = 'region'
         self.location = lambda: None
-        
+
         self.location.regionid = location
-        
+
         #Set the filename and path
         self.SetRegionPath()
-                
+
     def _SetRegionPathOld(self):
         """Sets the complete path to region files"""
 
-        self.FN = '%(prefix)s_%(prod)s_%(reg)s_%(d)s%(suf)s%(e)s' %{'prefix':self.comp.prefix,'prod':self.comp.product,'reg':self.location.regionid, 'd':self.datum.acqdatestr, 'suf':self.comp.suffix,'e':self.comp.ext}            
+        self.FN = '%(prefix)s_%(prod)s_%(reg)s_%(d)s%(suf)s%(e)s' %{'prefix':self.comp.prefix,'prod':self.comp.product,'reg':self.location.regionid, 'd':self.datum.acqdatestr, 'suf':self.comp.suffix,'e':self.comp.ext}
         if self.movieframe:
             self.FP = path.join(self.comp.mainpath, self.comp.source, self.comp.division, self.comp.folder, self.location.regionid)
         else:
@@ -411,17 +411,17 @@ class RegionLayer(Layer):
         if ' ' in self.FPN:
             exitstr = 'EXITING region FPN contains space %s' %(self.FPN)
             exit(exitstr)
-   
+
 class TextLayer(Layer):
     '''Class for non-spatial (text) layer
     '''
-    def __init__(self, comp, locusD, datumD, filepath): 
+    def __init__(self, comp, locusD, datumD, filepath):
         Layer.__init__(self, comp, locusD, datumD, filepath)
-                      
+
 class Location:
     '''Class for defining spatial data framework location
     '''
-    def __init__(self, paramsD, processid, siteid, tractid, defregid, system, division, session): 
+    def __init__(self, paramsD, processid, siteid, tractid, defregid, system, division, session):
         self.defregid = defregid
         self.system = system
         self.division = division
@@ -453,14 +453,14 @@ class Location:
         elif division == 'scenes' and system.lower() == 'landsat' and processid[0:7] in ['downloa', 'explode','extract','geochec','findgra','reorgan']:
             self.locusL.append('unknwon')
             self.locusD['unknown'] = {'locus':'unknwon', 'path':'unknwon', 'system':system, 'division':division}
-        
+
         elif division == 'scenes' and system.lower() == 'landsat' :
             from geoimagine.support.landsat import ConvertLandsatScenesToStr as convScene
             if 'singlescene' in processid.lower():
                 scenes = [(paramsD['wrspath'],paramsD['wrsrow'])]
             else:
                 scenes = session._SelectLandsatRegionScenes({'siteid':siteid,'tractid':tractid,'regionid':self.defregid})
-                
+
             for scene in scenes:
                 prD = convScene(scene)
                 scenepath = path.join(prD['pstr'],prD['rstr'])
@@ -487,50 +487,50 @@ class Composition:
             if key in self.checkL:
                 if '_' in compD[key]:
                     exitstr = 'the "%s" parameter can not contain underscore (_): %s ' %(key, compD[key])
-                    exit(exitstr) 
+                    exit(exitstr)
             setattr(self, key, compD[key])
 
         if not hasattr(self, 'band'):
             exitstr = 'All compositions must contain a band'
             exit(exitstr)
-            
+
         if not hasattr(self, 'folder'):
             exitstr = 'All compositions must contain a folder'
             exit(exitstr)
-            
+
         if not hasattr(self, 'suffix'):
             self.suffix = '0'
-        
+
         if self.suffix == '':
             self.suffix = '0'
-            
+
         self._SetCompid()
         self._SetSystem(system)
         self._SetDivision(division)
-   
+
     def _SetSystem(self,system):
         self.system = system
-  
+
     def _SetDivision(self,division):
         self.division = division
-        
+
     def _SetCompid(self):
         self.compid = '%(f)s_%(b)s' %{'f':self.folder, 'b':self.band}
-                   
+
     def _Update(self, compD):
         for key in compD:
             if key in self.checkL:
                 if '_' in compD[key]:
                     exitstr = 'the "%s" parameter can not contain underscore (_): %s ' %(key, compD[key])
-                    exit(exitstr) 
+                    exit(exitstr)
             setattr(self, key, compD[key])
-       
+
     def _CreatePalette(self):
         if not hasattr(self, 'palette'):
             self.palette = False
         elif not self.palette:
             pass
-        else:  
+        else:
             if self.palette == 'default':
                 self.palette = self.compid
             session = ManageLayout()
@@ -545,7 +545,7 @@ class Composition:
             query = {'palette':self.palettename}
             paramL = ['value','red','green','blue','alpha','label','hint']
             self.colorRamp = session._SelectPaletteColors(query,paramL)
-            session._Close() 
+            session._Close()
 
 class UserProj:
     '''Class for identifying user, project and location
@@ -555,14 +555,14 @@ class UserProj:
         '''
         self.userprojD = CheckSetParamValues(tagAttrL, userprojD, xml)[0]
         for key in self.userprojD:
-            setattr(self, key, self.userprojD[key])   
-            
-            
+            setattr(self, key, self.userprojD[key])
+
+
     def _SetCredentials(self, userCat, userStratum, **kwargs):
         self.usercat = userCat
         self.userstratum = userStratum
         for key in kwargs:
-            setattr(self, key, [item[0] for item in kwargs[key]]) 
+            setattr(self, key, [item[0] for item in kwargs[key]])
 
     def _CheckUserProj(self):
         '''
@@ -591,7 +591,7 @@ class UserProj:
                 %{'t':self.tractid, 'u':self.userid, 'l':self.userTracts}
                 exit(warnstr)
                 print (warnstr)
-                return False        
+                return False
         return True
 
     def _GetDefRegion(self,session):
@@ -617,13 +617,17 @@ class SetXMLProcess:
         self.processid = processid
         self.verbose = verbose
         self.xml = xml
-        
-        tagAttrL = session._SelectProcessTagAttr('periodicity','process','period') 
-        if 'period' in content:
-            period = content['period']
-            self.periodD = CheckSetParamValues(tagAttrL, period,xml)[0]    
-        else:
+
+        if processid in ['addrootproc','addsubproc']:
+            #This is required as otherwise the iinital installation of periodicity, as a process it self, fails
             self.periodD = {'timestep': 0}
+        else:
+            tagAttrL = session._SelectProcessTagAttr('periodicity','process','period')
+            if 'period' in content:
+                period = content['period']
+                self.periodD = CheckSetParamValues(tagAttrL, period)[0]
+            else:
+                self.periodD = {'timestep': 0}
 
     def _CheckPermission(self, session):
         '''
@@ -634,7 +638,7 @@ class SetXMLProcess:
         if result == None:
             exitstr = 'EXITING, The process %s is not defined in kartturmanin.proc20180305._CheckPermission' %(self.processid)
             exit(exitstr)
-        procStratum = result[0]  
+        procStratum = result[0]
         if procStratum > self.userProj.userstratum:
             if procStratum == 10:
                 warnstr = '    Only superuser have access to the process %(p)s' %{'p':self.processid}
@@ -644,14 +648,14 @@ class SetXMLProcess:
             return False
         else:
             return True
-                        
+
     def _CheckSubElements(self, tagAttrL, element, tagName, paramName, nodeparent, session):
         '''Check if the element contains any sub element
         '''
         #tagAttrL, tagItem[comp], tagName, paramD['parent'], session
         for tagAttr in tagAttrL:
             if tagAttr[0] == 'E':
-                #this can only be the setvalues or minmax under the the node tag 
+                #this can only be the setvalues or minmax under the the node tag
                 subTagAttrL = session._SelectProcessTagAttr(self.processid,tagAttr[6],tagAttr[1])
                 if len(subTagAttrL) == 0:
                     print ('subTagAttrL',subTagAttrL)
@@ -665,7 +669,7 @@ class SetXMLProcess:
                             setattr(self.transformscale, paramD['id'], paramD)
                         #the possible subelements
 
-                        elif tagName == 'node':   
+                        elif tagName == 'node':
                             if 'setvalue' in itm:
                                 paramD['setvalue'] = CheckSetValue(itm['setvalue'])
                             if 'minmax' in itm:
@@ -674,14 +678,14 @@ class SetXMLProcess:
                         else:
                             exitstr ='Unknown listed sub tag "%s"' %(tagName)
                             print (exitstr)
-                            exit('kartturmain.procYYYYMMDD _CheckSubElements')        
+                            exit('kartturmain.procYYYYMMDD _CheckSubElements')
                 else:
                     paramD, subItems = CheckSetParamValues(subTagAttrL, element, self.xml)
-                    if tagName == 'node':   
+                    if tagName == 'node':
                         if 'setvalue' in element:
                             paramD['setvalue'] = CheckSetValue(element['setvalue'])
                         if 'minmax' in element:
-                            paramD['minmax'] = CheckSetMinMax(element['minmax'])   
+                            paramD['minmax'] = CheckSetMinMax(element['minmax'])
                         self.node.paramsD[paramName][nodeparent].append(paramD)
                     elif tagName == 'dstcomp':
                         if paramName == paramD['band']:
@@ -689,18 +693,18 @@ class SetXMLProcess:
                             self.dstcompD[paramName] = paramD
                         else:
                             exitstr = 'The dstcomp tag must be identical with the band name (%s != %s)' %(paramName, paramD['band'])
-                            exit(exitstr)                                                                                               
+                            exit(exitstr)
                     elif tagName == 'srccomp' or tagName.split('-')[0] == 'srccomp':
                         print ('fucking paramname',paramName)
-                        if paramName == paramD['band']: 
+                        if paramName == paramD['band']:
                             self.srccompD[paramName] = paramD
                         elif '--' in paramName and paramName.split('--')[0] == paramD['band']:
 
                             self.srccompD[paramName] = paramD
-                            
+
                         else:
                             exitstr = 'The srccomp tag must be identical with the band name (%s != %s)' %(paramName, paramD['band'])
-                            exit(exitstr) 
+                            exit(exitstr)
                     elif tagName == 'procsys':
                         self.system.paramD[paramName] = paramD
                     else:
@@ -720,46 +724,46 @@ class SetXMLProcess:
         self.dstcopyD = {}
         self.srccompD = {}
         self.replaceD = {}
-        self.paramsD = {'creator': self.userProj.userid, 'today': Today()}        
+        self.paramsD = {'creator': self.userProj.userid, 'today': Today()}
         self.node = lambda: None
         self.node.paramsD = {}
 
         #self.system is only for addsubproc
         self.system = lambda: None
         self.system.paramD = {}
-        
+
         #self.systemD is the process itself
         self.systemD = {}
-        
+
         self.srcraw = lambda: None
         self.srcraw.paramsD = {}
-        
+
         self.stats = lambda: None
         self.stats.paramsD = {}
-        
+
         self.comp = lambda: None
         self.comp.paramsD = {}
-        
+
         self.index = lambda: None
         self.index.paramsD = {}
-        
+
         self.xy = lambda: None
         self.xy.paramsD = {}
-        
+
         self.resolfac = lambda: None
         self.resolfac.paramsD = {}
-        
+
         self.metadef = lambda: None
         self.metadef.paramsD = {}
-        
+
         self.transformoffset = lambda: None
-        
+
         self.transformscale = lambda: None
 
         #get the rooprocid of the process
         query ={'subprocid':self.processid}
 
-        self.rootprocid = session._SelectRootProcess(query)[0]  
+        self.rootprocid = session._SelectRootProcess(query)[0]
         #Check and set system setting (the overall system, the source division and the destination division)
         systemsettings = session._SelectProcessSystems(query)
         sysOK = False
@@ -772,7 +776,7 @@ class SetXMLProcess:
         if not sysOK:
             print ('systemsettings',systemsettings)
             print ('self.userProj.system',self.userProj.system)
-            exitstr = 'kartturmain.proc20180305-_CheckParams: The process %s can not be run on the system: %s' %(self.processid, self.userProj.system)   
+            exitstr = 'kartturmain.proc20180305-_CheckParams: The process %s can not be run on the system: %s' %(self.processid, self.userProj.system)
             exit(exitstr)
 
 
@@ -786,7 +790,7 @@ class SetXMLProcess:
                 continue
             if tagName in ['overwrite','delete','update','pipeline','acceptmissing']:
                 continue
-            
+
             #replacetag is for importing series data and can be anything, just skip here
             if 'replacetag' in self.paramsD and tagName == self.paramsD['replacetag']:
                 self.replaceD = {}
@@ -804,7 +808,7 @@ class SetXMLProcess:
             if len(tagAttrL) == 0:
                 exitstr = 'No tags/attributes found for processid "%s", tag name "%s"' %(self.processid, tagName)
                 exit(exitstr)
-                   
+
             if type(processD[tagName]) is list:
                 if tagName in ['parameters', 'period', 'srcperiod', 'dstperiod', 'srcpath', 'dstpath']:
                     exitstr = 'Each process can only have one tag named %(p)s' %{'p':tagName}
@@ -816,8 +820,8 @@ class SetXMLProcess:
                 paramD,subItems = CheckSetParamValues(tagAttrL, tagItem,self.xml)
                 if tagName == 'parameters':
                     self.paramsD = paramD
-                    self.paramsD['creator'] = self.userProj.userid 
-                    self.paramsD['today'] = Today() 
+                    self.paramsD['creator'] = self.userProj.userid
+                    self.paramsD['today'] = Today()
                     self.subparamsD = {}
                     if tagItem != None: #None is when the parameter tag i empty
                         for col in tagItem:
@@ -847,12 +851,12 @@ class SetXMLProcess:
                     self.srcperiodD = paramD
                 elif tagName == 'dstperiod':
                     #Resets period from default
-                    self.dstperiodD = paramD   
+                    self.dstperiodD = paramD
                 elif tagName == 'system':
                     for procsys in tagItem:
                         if not type(tagItem[procsys]) is list:
                             tagItem[procsys] = [tagItem[procsys]]
-                        for ps in tagItem[procsys]:                            
+                        for ps in tagItem[procsys]:
                             elementname = ps['@system']
                             self._CheckSubElements(tagAttrL, ps, 'procsys', elementname, tagName, session)
                 elif tagName in ['srccomp','dstcomp'] or tagName.split('-')[0] == 'srccomp':
@@ -870,76 +874,76 @@ class SetXMLProcess:
                                     tagAttr[1] = comp
                                     tagAttrL[x] = tagAttr
                         self._CheckSubElements(tagAttrL, tagItem[comp], tagName, comp, paramD['parent'], session)
-                
+
                 elif tagName == 'node':
-                    #special node for setting parameters when defining other processes                         
+                    #special node for setting parameters when defining other processes
                     if not paramD['element'] in self.node.paramsD:
                         self.node.paramsD[paramD['element']] = {}
                         if not paramD['parent'] in self.node.paramsD[paramD['element']]:
-                            self.node.paramsD[paramD['element']][paramD['parent']] = [] 
+                            self.node.paramsD[paramD['element']][paramD['parent']] = []
                     for node in tagItem:
                         if node[0] == '@':
                             #this the element and parent already set in the lines just above
                             continue
                         #reset node parameters to list
-                        if not type(tagItem[node]) is list: 
+                        if not type(tagItem[node]) is list:
                             tagItem[node] = [tagItem[node]]
                         for nodeD in tagItem[node]:
                             self._CheckSubElements(tagAttrL, nodeD, tagName, paramD['element'], paramD['parent'], session)
-                       
-                elif tagName == 'srcraw':    
-                    #special tag for importing ancillary data                        
+
+                elif tagName == 'srcraw':
+                    #special tag for importing ancillary data
                     self.srcraw.paramsD[paramD['id']] = paramD
-                elif tagName == 'dstcopy':    
-                    #special tag for importing ancillary data                        
+                elif tagName == 'dstcopy':
+                    #special tag for importing ancillary data
                     self.dstcopyD[paramD['band']] = paramD
-                elif tagName == 'stats':    
-                    #special tag for importing ancillary data                        
-                    self.stats.paramsD[paramD['id']] = paramD 
-                elif tagName == 'comp':    
-                    #special tag for compositions                        
-                    self.comp.paramsD[paramD['id']] = paramD 
-                elif tagName == 'index':    
-                    #special tag for indexes                       
+                elif tagName == 'stats':
+                    #special tag for importing ancillary data
+                    self.stats.paramsD[paramD['id']] = paramD
+                elif tagName == 'comp':
+                    #special tag for compositions
+                    self.comp.paramsD[paramD['id']] = paramD
+                elif tagName == 'index':
+                    #special tag for indexes
                     self.index.paramsD[paramD['id']] = paramD
-                elif tagName == 'resolfac':    
-                    #special tag for indexes                       
+                elif tagName == 'resolfac':
+                    #special tag for indexes
                     self.resolfac.paramsD[paramD['id']] = paramD
-                elif tagName == 'xy':    
-                    #special tag for xy coord extract/plot                       
+                elif tagName == 'xy':
+                    #special tag for xy coord extract/plot
                     self.xy.paramsD[paramD['id']] = paramD
-                elif tagName in ['transformoffset', 'transformscale']:   
-                    #special tag for image lineratransform data  
+                elif tagName in ['transformoffset', 'transformscale']:
+                    #special tag for image lineratransform data
                     for comp in tagItem:
                         if comp[0] == '@':
                             #skip any attributes from 'srccomp' or 'dstcomp'
                             continue
-                        self._CheckSubElements(tagAttrL, tagItem[comp], tagName, comp, paramD['parent'], session)                       
-                elif tagName == 'column':       
-                    #special tag for columns defining meta data for landsat collections                       
+                        self._CheckSubElements(tagAttrL, tagItem[comp], tagName, comp, paramD['parent'], session)
+                elif tagName == 'column':
+                    #special tag for columns defining meta data for landsat collections
 
                     self.metadef.paramsD[paramD['column']] = paramD
                 else: # unrecognized pditem
                     exitstr = '    EXITING: Unknown tag found: "%s"' %tagName
                     exit(exitstr)
 
-        #Check if srcperiod and dstperiod are set, if not set to overall period        
+        #Check if srcperiod and dstperiod are set, if not set to overall period
 
-        if not hasattr(self, 'srcperiod'):      
-            self.srcperiodD = deepcopy(self.periodD) 
+        if not hasattr(self, 'srcperiod'):
+            self.srcperiodD = deepcopy(self.periodD)
         if not hasattr(self, 'dstperiod'):
             self.dstperiodD = deepcopy(self.periodD)
             #self.srcperiodD = self.periodD
         if not hasattr(self, 'dstperiod'):
             self.dstperiodD = deepcopy(self.periodD)
-            
+
         if self.verbose:
             print ('    process:', self.processid)
             print ('    rootprocess:', self.rootprocid)
             print ('    system:')
             for key in self.systemD:
                 printstr = '        %(k)s: %(v)s' %{'k':key, 'v':self.systemD[key]}
-                print (printstr)       
+                print (printstr)
             print ('    overwrite:', self.overwrite)
             print ('    delete:', self.delete)
             print ('    pipeline:', self.pipeline)
@@ -959,7 +963,7 @@ class SetXMLProcess:
                 print ('    destination path:')
                 for key in self.dstpathD:
                     printstr = '        %(k)s: %(v)s' %{'k':key, 'v':self.dstpathD[key]}
-                    print (printstr)  
+                    print (printstr)
             if self.srccompD:
                 print ('    source compostions:')
                 for key in self.srccompD:
@@ -969,19 +973,19 @@ class SetXMLProcess:
                 print ('    destination compostions:')
                 for key in self.dstcompD:
                     printstr = '        %(k)s: %(v)s' %{'k':key, 'v':self.dstcompD[key]}
-                    print (printstr) 
+                    print (printstr)
 
             if self.node.paramsD:
                 print ('    node:')
                 for key in self.node.paramsD:
                     printstr = '        %(k)s: %(v)s' %{'k':key, 'v':self.node.paramsD[key]}
-                    print (printstr) 
+                    print (printstr)
             print ('\n')
 
             if self.processid =='organizeancillary': # and self.paramsD['subprocid'] == 'regioncategories':
                 pass
         return True
-                
+
     def _SetOverwriteDeletePipeline(self,pD):
         if 'overwrite' in pD:
             self.overwrite = BoolTag(pD['overwrite'] )
@@ -1003,7 +1007,7 @@ class SetXMLProcess:
             self.acceptmissing = BoolTag(pD['acceptmissing'] )
         else:
             self.acceptmissing = False
-        
+
 class MainProc:
     '''
     classdocs
@@ -1016,7 +1020,7 @@ class MainProc:
         self.session = session
         if self.verbose > 1:
             print ('db session:', self.session.name)
-        
+
         #Set overwrite and delete
         self.delete = proc.delete
         self.overwrite = proc.overwrite
@@ -1026,23 +1030,23 @@ class MainProc:
         self.system = lambda: None
         for key in proc.systemD:
             setattr(self.system, key, proc.systemD[key])
-            
+
         #Set the parameters, must always be included
         self.params = lambda: None
         for key in proc.paramsD:
             setattr(self.params, key, proc.paramsD[key])
-            
+
         if hasattr(proc, 'srcpathD'):
             self.srcpath = lambda: None
             for key in proc.srcpathD:
                 setattr(self.srcpath, key, proc.srcpathD[key])
-                
+
         if hasattr(proc, 'dstpathD'):
             self.dstpath = lambda: None
             for key in proc.dstpathD:
-                setattr(self.dstpath, key, proc.dstpathD[key]) 
-         
-        if self.verbose > 1:          
+                setattr(self.dstpath, key, proc.dstpathD[key])
+
+        if self.verbose > 1:
             print ('SETTING LOCATIONS')
         self._SetLocations()
         if self.verbose > 1:
@@ -1050,14 +1054,14 @@ class MainProc:
         self._SetTimeSteps()
         if self.verbose > 1:
             print ('SETTING COMPOSITIONS')
-        self._SetCompositions()  
- 
+        self._SetCompositions()
+
         if self.verbose > 1:
             print ('SETTING LAYERS')
         self._SetLayers()
         if self.verbose > 1:
             print ('FINISHED MAINPROC')
-        
+
     def _SetTimeSteps(self):
         self.srcperiod = TimeSteps(self.proc.srcperiodD)
         self.dstperiod = TimeSteps(self.proc.dstperiodD)
@@ -1068,20 +1072,20 @@ class MainProc:
         self.srcCompD = {}
         self.dstCompD = {}
         self.compD = {}
-        
+
         if self.verbose > 1:
             print ('    db session:',self.session.name)
         if 'seasonfill' in self.proc.processid.lower():
-            self.proc.srccompD['season'] = {}  
-        
+            self.proc.srccompD['season'] = {}
+
         self.srcIdDict = {}
-        
+
         for comp in self.proc.srccompD:
-            if 'id' in self.proc.srccompD[comp]:  
-                self.srcIdDict[self.proc.srccompD[comp]['id']] = comp 
-                  
+            if 'id' in self.proc.srccompD[comp]:
+                self.srcIdDict[self.proc.srccompD[comp]['id']] = comp
+
         for srccomp in self.proc.srccompD:
-            #THIS SHOULD BE BETTER 
+            #THIS SHOULD BE BETTER
             if not 'system' in self.proc.srccompD[srccomp]:
                 if self.proc.systemD['srcsystem'] in ['export']:
                     #export does not exists as system, only as folder
@@ -1090,15 +1094,15 @@ class MainProc:
                     self.proc.srccompD[srccomp]['system'] = self.proc.systemD['srcsystem']
 
             self.compD[srccomp] = self.session._SelectComp(self.proc.srccompD[srccomp])
-       
+
             self.srcCompD[srccomp] = Composition(self.compD[srccomp],self.proc.systemD['srcsystem'],self.proc.systemD['srcdivision'])
             if 'copycomp' in self.proc.paramsD:
                 self._SetDstComp(srccomp)
-                
+
             #Update scrCompD with id if that is included
             if 'id' in self.proc.srccompD[srccomp]:
                 self.srcCompD[srccomp]._Update({'id':self.proc.srccompD[srccomp]['id']})
-              
+
             #DstcopyD is a special composition dictionary used only for Ancillary data
             if comp in self.proc.dstcopyD:
                 self.proc.dstcompD[comp] = self.session._SelectComp(self.proc.srccompD[comp])
@@ -1119,8 +1123,8 @@ class MainProc:
                 queryD = {'regionid':locus}
                 paramL = ['compid','source','product','suffix','acqdate','acqdatestr','regionid']
                 layerStuff = self.session._SelectLayerOnLocus('system',queryD,paramL)
-                                
-        for comp in self.proc.dstcompD: 
+
+        for comp in self.proc.dstcompD:
             self.dstCompD[comp] = Composition(self.proc.dstcompD[comp],self.proc.systemD['dstsystem'],self.proc.systemD['dstdivision'])
 
         if hasattr(self,'extraSrcCompD'):
@@ -1139,24 +1143,24 @@ class MainProc:
             self.proc.dstcompD[dstcomp]['folder'] = 'tracts'
             #For the tractproject, it is the tract itelsf that is the system region
             self.dstlocations = Location(self.proc.paramsD, self.proc.processid, self.proc.userProj.siteid, self.proc.userProj.tractid, self.proc.paramsD['tractid'], self.proc.systemD['dstsystem'], self.proc.systemD['dstdivision'],self.session)
-        
+
         def _movie():
             dstcomp = srccomp
             #Celltype only determines how to set the path, and need to be set to these inconsisten values here!!!
             #DO NOT CHANGE
-            self.proc.dstcompD[dstcomp] = {'celltype':self.proc.paramsD['copycomp']}                
+            self.proc.dstcompD[dstcomp] = {'celltype':self.proc.paramsD['copycomp']}
             self.proc.srccompD[srccomp]['system'] = 'export'
             #RESET THE src SYSTM
             self.srcCompD[srccomp] = Composition(self.compD[srccomp],'export',self.proc.systemD['srcdivision'])
             self._ReplaceComp(srccomp,dstcomp)
             #Set the srcIdDict['base']
             self.srcIdDict['base'] = srccomp
-        
+
         def _template():
 
-            template = self.proc.paramsD['template'] 
+            template = self.proc.paramsD['template']
             dstcompL = list(self.proc.dstcompD.keys())
-            
+
             for dstcomp in dstcompL:
                 newcompD = {}
                 for item in self.compD[srccomp]:
@@ -1168,8 +1172,8 @@ class MainProc:
                 if 'id' in self.proc.dstcompD[dstcomp]:
                     newcompD['id'] = self.proc.dstcompD[dstcomp]['id']
                 self.proc.dstcompD[dstcomp] = newcompD
-                
-        
+
+
 
         def _anytoall():
             for dstcomp in self.proc.dstcompD:
@@ -1188,15 +1192,15 @@ class MainProc:
                     #self.dstCompD[comp]._Update({'id':self.proc.dstcompD[comp]['id']})
                 self.proc.dstcompD[dstcomp] = newcompD
             #Set to pass once done
-            self.proc.paramsD['copycomp'] = 'pass' 
-            
+            self.proc.paramsD['copycomp'] = 'pass'
+
         def _archive():
             dstcomp = srccomp
             newcompD = {}
             for item in self.compD[srccomp]:
                 newcompD[item] = self.compD[srccomp][item]
             self.proc.dstcompD[dstcomp] = newcompD
-            
+
         def _exporttobyte():
             dstcomp = srccomp
             newcompD = {}
@@ -1205,7 +1209,7 @@ class MainProc:
             newcompD['celltype'] = 'Byte'
             newcompD['cellnull'] = 255
             self.proc.dstcompD[dstcomp] = newcompD
-            
+
         def _exportmap():
             dstcomp = srccomp
             newcompD = {}
@@ -1214,7 +1218,7 @@ class MainProc:
             newcompD['celltype'] = 'map'
             newcompD['cellnull'] = 255
             self.proc.dstcompD[dstcomp] = newcompD
-            
+
         def _exportSvg():
             dstcomp = srccomp
             newcompD = {}
@@ -1224,13 +1228,13 @@ class MainProc:
             newcompD['suffix'] = self.proc.paramsD['suffix']
 
             self.proc.dstcompD[dstcomp] = newcompD
- 
-            #if self.proc.paramsD['dst_region'] != 'None': 
+
+            #if self.proc.paramsD['dst_region'] != 'None':
             #self.proc.userProj.defregion = self.proc.paramsD['dst_region']
             #paramsD, processid, siteid, tractid, defregid, system, division, session
             self.srclocations = Location(self.proc.paramsD, self.proc.processid, False, False, self.proc.paramsD['src_region'], self.proc.systemD['srcsystem'], self.proc.systemD['srcdivision'],self.session)
-            
-            
+
+
         def _seasonalts():
             newcompD = {}
             for item in self.compD[srccomp]:
@@ -1242,20 +1246,20 @@ class MainProc:
             #Reset the dst peridod
             self.proc.dstperiodD['seasonalts'] = True
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-        
+
             #Create the dstcomp
             #self.dstCompD[comp] = newcompD
             self.proc.dstcompD[srccomp] = newcompD
-            
+
         def _DtoMdataunits():
             newcompD = {}
-            dstcomp = list(self.proc.dstcompD.keys())[0]             
+            dstcomp = list(self.proc.dstcompD.keys())[0]
             for item in self.proc.dstcompD:
                 if item in self.proc.dstcompD[dstcomp] and self.proc.dstcompD[dstcomp][item]  not in ['src',-2222]:
                     newcompD[item] = self.proc.dstcompD[dstcomp][item]
                 else:
                     newcompD[item] = self.compD[srccomp]
-                    
+
         def _applystaticmask():
             #Copy the srcComp to dstcomp
             if self.proc.srccompD[srccomp]['id'] == 'layer':
@@ -1264,29 +1268,29 @@ class MainProc:
                     if item in self.proc.dstcompD[dstcomp] and self.proc.dstcompD[dstcomp][item] not in  ['src', '**', -2222]:
                         pass
                     else:
-                        self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item] 
+                        self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item]
                 if self.proc.dstcompD[dstcomp]['suffix'] == 'auto':
                     self.proc.dstcompD[dstcomp]['suffix'] = '%(s)s-mask' %{'s':self.proc.srccompD[srccomp]['suffix']}
 
                 if len(self.proc.dstcompD[dstcomp]['suffix']) > 32:
                     exitstr = 'suffix is too long: %s' %(self.proc.dstcompD['suffix'])
                     exit(exitstr)
-                    
+
         def _subtractseason():
             if self.proc.srccompD[srccomp]['id'] == 'layer':
-                dstcomp = list(self.proc.dstcompD.keys())[0]    
-                for item in self.compD[srccomp]:         
+                dstcomp = list(self.proc.dstcompD.keys())[0]
+                for item in self.compD[srccomp]:
                     if item in self.proc.dstcompD[dstcomp] and self.proc.dstcompD[dstcomp][item]  not in ['src',-2222]:
                         pass
                     else:
-                        self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item] 
-                                                   
+                        self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item]
+
         def _gdaaltranslate():
             #Reset dstlocations, unless dst_region is not set (default = 'None')
-            if self.proc.paramsD['dst_region'] != 'None': 
+            if self.proc.paramsD['dst_region'] != 'None':
                 self.proc.userProj.defregion = self.proc.paramsD['dst_region']
                 self.dstlocations = Location(self.proc.paramsD, self.proc.processid,self.proc.userProj.defregion, self.proc.systemD['dstsystem'], self.proc.systemD['dstdivision'],self.session)
-        
+
         def _seasonfillts():
             #equals 1 to 1 but with forced naming of folder for dst
             #And then creates a second src comp
@@ -1299,7 +1303,7 @@ class MainProc:
                 exitstr = 'Fill folder name is too long: %s' %(newcompD['folder'])
                 print (exitstr)
                 EXITAGAIN
-            self.proc.dstcompD[dstcomp] = newcompD 
+            self.proc.dstcompD[dstcomp] = newcompD
             #Create a second source period (for the season)
             newcompD = {}
             for item in self.compD[srccomp]:
@@ -1312,7 +1316,7 @@ class MainProc:
             self.seasonperiod = TimeSteps(self.proc.seasonperiodD)
             #Create the srccomp for season
             self.proc.srccompD['season'] = newcompD
-            
+
         def _setassimilation():
             if self.proc.srccompD[srccomp]['id'] == 'master':
                 return
@@ -1323,18 +1327,18 @@ class MainProc:
             #master over slave standard deviation
             if self.proc.srccompD[srccomp]['folder'][-5:-1] == '-ses':
                 folder = '%(f)s-assim' %{'f':self.proc.srccompD[srccomp]['folder'][0:-5]}
-                
+
             else:
                 folder = '%(f)s-assim' %{'f':self.proc.srccompD[srccomp]['folder']}
             if self.proc.paramsD['suffix'] == 'auto':
                 suffix = self.proc.srccompD[srccomp]['folder']
             else:
                 suffix = self.proc.paramsD['suffix']
-            mastermeanBand = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            mastermeanBand = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             mastermeanPrefix = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
-            slavemeanBand = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            slavemeanBand = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             slavemeanPrefix = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
-            stdratioBand = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            stdratioBand = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             stdratioPrefix = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
             bandidD = {}
             bandidD['mstavg'] = {'id':'mstavg','band':mastermeanBand, 'prefix':mastermeanPrefix}
@@ -1364,22 +1368,22 @@ class MainProc:
                     exitstr = 'Fill folder name is too long: %s' %(newcompD['folder'])
                     print (exitstr)
                     EXITAGAIN
-                    
+
                 #Set dstcomp to the id rather than the band
-                self.proc.dstcompD[b] = newcompD       
-   
+                self.proc.dstcompD[b] = newcompD
+
             #reset the dstperiod to static
             self.proc.dstperiodD['timestep'] = 'static'
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-            
+
         def _assimilate():
-            assimfolder = '%(f)s-assim' %{'f':self.proc.srccompD[srccomp]['folder']} 
+            assimfolder = '%(f)s-assim' %{'f':self.proc.srccompD[srccomp]['folder']}
             assimsuffix = self.proc.paramsD['assimsuffix']
-            mastermeanBand = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            mastermeanBand = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             mastermeanPrefix = 'mstavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
-            slavemeanBand = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            slavemeanBand = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             slavemeanPrefix = 'slvavg-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
-            stdratioBand = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']} 
+            stdratioBand = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['band']}
             stdratioPrefix = 'stdrat-%(s)s' %{'s':self.proc.srccompD[srccomp]['prefix']}
             bandidD = {}
             bandidD['mstavg'] = {'id':'mstavg','band':mastermeanBand, 'prefix':mastermeanPrefix}
@@ -1398,10 +1402,10 @@ class MainProc:
                 newcompD['id'] = b
                 newcompD['suffix'] = assimsuffix
                 newcompD['timestep'] = 'static'
-                 
+
                 #Set srccomp to the id rather than the band
-                #self.proc.srccompD[b] = newcompD 
-                self.extraSrcCompD[b] = newcompD   
+                #self.proc.srccompD[b] = newcompD
+                self.extraSrcCompD[b] = newcompD
             #Force id to original src
             self.compD[srccomp]['id'] = 'slave'
             #reset the period to static
@@ -1429,7 +1433,7 @@ class MainProc:
                 folderD['ols-ic'] = '%s-trend' %(self.compD[srccomp]['folder'])
                 folderD['ols-r2'] = '%s-trend' %(self.compD[srccomp]['folder'])
                 folderD['ols-rmse'] = '%s-trend' %(self.compD[srccomp]['folder'])
-                
+
                 folderD['ts-mdsl'] = '%s-trend' %(self.compD[srccomp]['folder'])
                 folderD['ts-hisl'] = '%s-trend' %(self.compD[srccomp]['folder'])
                 folderD['ts-losl'] = '%s-trend' %(self.compD[srccomp]['folder'])
@@ -1440,7 +1444,7 @@ class MainProc:
                 folderD['ols-ic'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
                 folderD['ols-r2'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
                 folderD['ols-rmse'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
-                
+
                 folderD['ts-mdsl'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
                 folderD['ts-hisl'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
                 folderD['ts-losl'] = '%s-%s-trend' %(self.compD[srccomp]['folder'],self.srcperiod.pandasCode)
@@ -1458,7 +1462,7 @@ class MainProc:
             bandD['ols-r2'] = 'ols-r2-%s' %(self.compD[srccomp]['band'])
             celltypeD['ols-r2'] = 'Float32'
             bandD['ols-rmse'] = 'ols-rmse-%s' %(self.compD[srccomp]['band'])
-            
+
             bandD['ts-mdsl'] = 'ts-mdsl-%s' %(self.compD[srccomp]['band'])
             celltypeD['ts-mdsl'] = 'Float32'
             bandD['ts-hisl'] = 'ts-hisl-%s' %(self.compD[srccomp]['band'])
@@ -1466,7 +1470,7 @@ class MainProc:
             bandD['ts-losl'] = 'ts-losl-%s' %(self.compD[srccomp]['band'])
             celltypeD['ts-losl'] = 'Float32'
             bandD['ts-ic'] = 'ts-ic-%s' %(self.compD[srccomp]['band'])
-            
+
             if 'mk' in self.proc.stats.paramsD:
                 self.proc.stats.paramsD['ts-mdsl'] = {'band':'ts-mdsl'}
                 self.proc.stats.paramsD['ts-hisl'] = {'band':'ts-hisl'}
@@ -1476,20 +1480,20 @@ class MainProc:
                 self.proc.stats.paramsD['ols-ic'] = {'band':'ols-ic'}
                 self.proc.stats.paramsD['ols-r2'] = {'band':'ols-r2'}
                 self.proc.stats.paramsD['ols-rmse'] = {'band':'ols-rmse'}
-                                           
+
             #Complex, dst is per stat item
             for statItem in self.proc.stats.paramsD:
-                
+
                 newcompD = {}
                 for item in self.compD[srccomp]:
-                    newcompD[item] = self.compD[srccomp][item]  
-                
+                    newcompD[item] = self.compD[srccomp][item]
+
                 newcompD['folder'] = folderD[statItem]
                 newcompD['band'] = bandD[statItem]
                 newcompD['prefix'] = bandD[statItem]
                 newcompD['suffix'] = '%(s)s%(a)s' %{'s':newcompD['suffix'],'a':suffixaddon}
                 newcompD['cellnull'] = -32768
-                
+
                 if statItem in celltypeD:
                     #if not in statItem in celltypeD, the original data celltype
                     newcompD['celltype'] = celltypeD[statItem]
@@ -1498,9 +1502,9 @@ class MainProc:
                 self.proc.dstcompD[statItem] = newcompD
             #Reset the dst peridod
             self.proc.dstperiodD['timestep'] = 'timespan-%s' %(self.srcperiod.pandasCode)
-                          
+
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-            
+
         def _resamplets():
             #Set up a dict for all possible temporal resampling alternatives
             tsDict = {'M':'M', 'A':'A'}
@@ -1515,12 +1519,12 @@ class MainProc:
                 s = 0
                 firstSrcDate = mj_dt.yyyymmddDate(self.srcperiod.datumL[0])
                 year = self.proc.periodD['startyear']
-                while True: 
+                while True:
                     doy = self.params.startstep+s*step
                     startdate = mj_dt.YYYYDOYToDate(year,doy)
                     if startdate >= firstSrcDate:
                         break
-                    s += 1  
+                    s += 1
                 #reset the periodicity to reflect the starting date
                 self.proc.srcperiodD['startyear'] = self.proc.dstperiodD['startyear'] = startdate.year
                 self.proc.srcperiodD['startmonth'] = self.proc.dstperiodD['startmonth'] = startdate.month
@@ -1528,7 +1532,7 @@ class MainProc:
                 self.proc.dstperiodD['timestep'] = self.params.targettimestep
                 self.srcperiod = TimeSteps(self.proc.srcperiodD)
                 self.dstperiod = TimeSteps(self.proc.dstperiodD)
-                
+
             elif self.proc.srcperiodD['timestep'] == 'D':
                 if self.params.targettimestep == 'M':
                     step = 1
@@ -1536,12 +1540,12 @@ class MainProc:
                     s = 0
                     firstSrcDate = mj_dt.yyyymmddDate(self.srcperiod.datumL[0])
                     year = self.proc.periodD['startyear']
-                    while True: 
+                    while True:
                         doy = self.params.startstep+s
                         startdate = mj_dt.YYYYDOYToDate(year,doy)
                         if startdate >= firstSrcDate:
                             break
-                        s += 1  
+                        s += 1
                     #reset the periodicity to reflect the starting date
                     self.proc.srcperiodD['startyear'] = self.proc.dstperiodD['startyear'] = startdate.year
                     self.proc.srcperiodD['startmonth'] = self.proc.dstperiodD['startmonth'] = startdate.month
@@ -1555,30 +1559,30 @@ class MainProc:
                 self.proc.dstperiodD['timestep'] = self.params.targettimestep
                 #self.srcperiod = TimeSteps(self.proc.srcperiodD)
                 self.dstperiod = TimeSteps(self.proc.dstperiodD)
-                
+
             dstcomp = list(self.proc.dstcompD.keys())[0]
             for item in self.compD[srccomp]:
                 if item in self.proc.dstcompD[dstcomp] and self.proc.dstcompD[dstcomp][item] not in  ['src', '**', -2222]:
                     pass
                 else:
-                    self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item] 
+                    self.proc.dstcompD[dstcomp][item] = self.compD[srccomp][item]
 
             if self.proc.dstcompD[dstcomp]['suffix'] == 'auto':
                 self.proc.dstcompD[dstcomp]['suffix'] = '%(s)s-%(t)s' %{'s':self.proc.srccompD[srccomp]['suffix'],'t':tsDict[self.params.targettimestep]}
             if self.proc.dstcompD[dstcomp]['folder'] == 'auto':
                 self.proc.dstcompD[dstcomp]['folder'] = '%(s)s-%(t)s' %{'s':self.proc.srccompD[srccomp]['folder'],'t':tsDict[self.params.targettimestep]}
-                
+
             #self.proc.dstcompD[srccomp]['suffix'] = '%(s)s-mask' %{'s':self.proc.srccompD[srccomp]['suffix']}
             if len(self.proc.dstcompD[dstcomp]['suffix']) > 32:
                 exitstr = 'suffix is too long: %s' %(self.proc.dstcompD[dstcomp]['suffix'])
                 exit(exitstr)
-                
+
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
             if self.params.targettimestep[len(self.params.targettimestep)-1] == 'D' or self.proc.srcperiodD['timestep'] == 'D':
                 self.dstperiod.periodstep = step
             elif len(self.srcperiod.datumL) == len(self.dstperiod.datumL):
                 exitstr = 'No change in temporal frequency'
-                print (exitstr) 
+                print (exitstr)
                 SNULLE
             else:
                 if not int(round(len(self.srcperiod.datumL))/len(self.dstperiod.datumL)) == float(len(self.srcperiod.datumL))/len(self.dstperiod.datumL):
@@ -1591,16 +1595,16 @@ class MainProc:
                     print ('self.proc.srcperiod',self.proc.srcperiodD['timestep'])
                     #ERRRORIGN
                 else:
-                    self.dstperiod.periodstep = int(round(len(self.srcperiod.datumL))/len(self.dstperiod.datumL))   
-                    
+                    self.dstperiod.periodstep = int(round(len(self.srcperiod.datumL))/len(self.dstperiod.datumL))
+
         def _signiftrend():
-            #TGTTODO I can not have p005 set as fixed  
+            #TGTTODO I can not have p005 set as fixed
             if self.compD[srccomp]['folder'][len(self.compD[srccomp]['folder'])-6: len(self.compD[srccomp]['folder'])] == '-trend':
                 folder = '%s-change' %(self.compD[srccomp]['folder'][0:len(self.compD[srccomp]['folder'])-6])
             else:
-                folder = '%s-change' %(self.compD[srccomp]['folder']) 
+                folder = '%s-change' %(self.compD[srccomp]['folder'])
 
-            if self.proc.srccompD[srccomp]['id'] == 'intercept':  
+            if self.proc.srccompD[srccomp]['id'] == 'intercept':
                 layerL = ['change','changep']
                 addToBandL = ['change','change']
                 addToSuffixL = ['model','model@p']
@@ -1614,16 +1618,16 @@ class MainProc:
             for x,l in enumerate(layerL):
                 newcompD = {}
                 for item in self.compD[srccomp]:
-                    newcompD[item] = self.compD[srccomp][item]  
+                    newcompD[item] = self.compD[srccomp][item]
                 newcompD['folder'] = folder
-                newcompD['band'] = newcompD['prefix'] =  '%s-%s' %(self.proc.paramsD['basename'],addToBandL[x]) 
-                newcompD['suffix'] = '%s-%s' %(addToSuffixL[x],newcompD['suffix']) 
+                newcompD['band'] = newcompD['prefix'] =  '%s-%s' %(self.proc.paramsD['basename'],addToBandL[x])
+                newcompD['suffix'] = '%s-%s' %(addToSuffixL[x],newcompD['suffix'])
                 #Create the dstcomp
                 self.proc.dstcompD[l] = newcompD
-                
+
         def _tpitri(txi):
             folder = '%(b)s-%(txi)s' %{'b':self.compD[srccomp]['folder'],'txi':txi}
-        
+
             scalefac = 1
             offsetadd = 0
             cellnull = -9999
@@ -1637,29 +1641,29 @@ class MainProc:
             self.tpiL.sort()
 
             for tpi in self.tpiL:
-                
+
                 bandname = '%(txi)s%(d)d-%(b)s' %{'txi':txi,'d':tpi*self.proc.paramsD['resolid0'],'b':self.compD[srccomp]['band']}
                 prefix = '%(txi)s%(d)d-%(p)s' %{'txi':txi,'d':tpi*self.proc.paramsD['resolid0'],'p':self.compD[srccomp]['prefix']}
                 self.proc.tpiD[bandname] = {'resolfac':tpi}
                 newcompD = {}
                 for item in self.compD[srccomp]:
-                    newcompD[item] = self.compD[srccomp][item]  
-                
+                    newcompD[item] = self.compD[srccomp][item]
+
                 newcompD['folder'] = folder
                 newcompD['band'] = bandname
                 newcompD['prefix'] = prefix
                 newcompD['celltype'] = celltype
-                newcompD['cellnull'] = cellnull 
+                newcompD['cellnull'] = cellnull
                 newcompD['dataunit'] = txi
                 newcompD['scalefac'] = scalefac
                 newcompD['offsetadd'] = offsetadd
-                
+
                 #Create the dstcomp
                 self.proc.dstcompD[bandname] = newcompD
-                
+
         def _slope():
             folder = '%(b)s-slope' %{'b':self.compD[srccomp]['folder']}
-        
+
             scalefac = 1
             offsetadd = 0
             cellnull = -9999
@@ -1675,23 +1679,23 @@ class MainProc:
                 prefix = 'slope-d-%(p)s' %{'p':self.compD[srccomp]['prefix']}
 
             for item in self.compD[srccomp]:
-                newcompD[item] = self.compD[srccomp][item]  
-            
+                newcompD[item] = self.compD[srccomp][item]
+
             newcompD['folder'] = folder
             newcompD['band'] = bandname
             newcompD['prefix'] = prefix
             newcompD['celltype'] = celltype
-            newcompD['cellnull'] = cellnull 
-            
+            newcompD['cellnull'] = cellnull
+
             newcompD['scalefac'] = scalefac
             newcompD['offsetadd'] = offsetadd
-            
+
             #Create the dstcomp
             self.proc.dstcompD[bandname] = newcompD
-            
+
         def _aspect():
             folder = '%(b)s-aspect' %{'b':self.compD[srccomp]['folder']}
-        
+
             scalefac = 1
             offsetadd = 0
             cellnull = -9999
@@ -1707,47 +1711,47 @@ class MainProc:
                 prefix = 'aspect-%(p)s' %{'p':self.compD[srccomp]['prefix']}
 
             for item in self.compD[srccomp]:
-                newcompD[item] = self.compD[srccomp][item]  
-            
+                newcompD[item] = self.compD[srccomp][item]
+
             newcompD['folder'] = folder
             newcompD['band'] = bandname
             newcompD['prefix'] = prefix
             newcompD['celltype'] = celltype
-            newcompD['cellnull'] = cellnull 
-            
+            newcompD['cellnull'] = cellnull
+
             newcompD['scalefac'] = scalefac
             newcompD['offsetadd'] = offsetadd
-            
+
             #Create the dstcomp
             self.proc.dstcompD[bandname] = newcompD
-            
+
         def _hillshade():
             folder = '%(b)s-shade' %{'b':self.compD[srccomp]['folder']}
-        
+
             scalefac = 1
             offsetadd = 0
             cellnull = -9999
             celltype = 'Int16'
-  
+
             bandname = 'shade-%(b)s' %{'b':self.compD[srccomp]['band']}
             prefix = 'shade-%(p)s' %{'p':self.compD[srccomp]['prefix']}
 
             newcompD = {}
             for item in self.compD[srccomp]:
-                newcompD[item] = self.compD[srccomp][item]  
-            
+                newcompD[item] = self.compD[srccomp][item]
+
             newcompD['folder'] = folder
             newcompD['band'] = bandname
             newcompD['prefix'] = prefix
             newcompD['celltype'] = celltype
-            newcompD['cellnull'] = cellnull 
+            newcompD['cellnull'] = cellnull
             newcompD['dataunit'] = 'hillshade'
             newcompD['scalefac'] = scalefac
             newcompD['offsetadd'] = offsetadd
-            
+
             #Create the dstcomp
             self.proc.dstcompD[bandname] = newcompD
-                
+
         def _autocorr():
             '''
             '''
@@ -1759,18 +1763,18 @@ class MainProc:
                 folder ='%s-acf' %(self.compD[srccomp]['folder'])
                 bandname = '%(b)s-acf' %{'b':self.compD[srccomp]['band']}
                 prefix = '%(p)s-acf' %{'p':self.compD[srccomp]['prefix']}
-       
+
             #Create the new (lag) composition
             newcompD = {}
             for item in self.compD[srccomp]:
-                newcompD[item] = self.compD[srccomp][item]  
-            
+                newcompD[item] = self.compD[srccomp][item]
+
             newcompD['folder'] = folder
             newcompD['band'] = bandname
             newcompD['prefix'] = prefix
             #Celltype must be float 32
             newcompD['celltype'] = 'Float32'
-            #Set dataunit to 
+            #Set dataunit to
             newcompD['dataunit'] = 'correlation'
             newcompD['scalefac'] = 1
             newcompD['offsetadd'] = 0
@@ -1783,7 +1787,7 @@ class MainProc:
             self.proc.dstperiodD['nlags'] = self.proc.paramsD['nlags']
             self.proc.dstperiodD['mirror'] = self.proc.paramsD['mirror']
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-  
+
         def _indexcrosstrend(suffixaddon,folderaddon):
             '''
             '''
@@ -1806,22 +1810,22 @@ class MainProc:
             #if self.proc.paramsD['xcrossmax']:self.xcrossdstL.append('maxcorr')
             if self.proc.paramsD['xcrosslag']:self.xcrossdstL.append('lag')
 
-            dstfolder  ='%s-ixc%s' %(self.compD[srccomp]['folder'],folderaddon)        
+            dstfolder  ='%s-ixc%s' %(self.compD[srccomp]['folder'],folderaddon)
             #all outputs are created, to make the looping faster, but only the ones given are saved
             #allcrosscompsL = ['pearson','maxcorr','lag']
             ''' CREATE TARGETS'''
-            self.dstIndexD ={} 
-    
+            self.dstIndexD ={}
+
             for i in self.indexL:
                 for c in self.xcrosscompsL:
                     for l in self.xcrossdstL:
-                        
+
                         bandname = prefix = '%(c)s-%(l)s-%(i)s' %{'c':c, 'l':l,'i':i}
                         #Create the new (lag) composition
                         newcompD = {}
                         for item in self.compD[srccomp]:
-                            newcompD[item] = self.compD[srccomp][item]  
-                        
+                            newcompD[item] = self.compD[srccomp][item]
+
                         newcompD['folder'] = dstfolder
                         newcompD['band'] = bandname
                         newcompD['prefix'] = prefix
@@ -1831,17 +1835,17 @@ class MainProc:
                         else:
                             newcompD['celltype'] = 'Float32'
                         newcompD['cellnull'] = -32768
-                        #Set dataunit to 
+                        #Set dataunit to
                         newcompD['dataunit'] = 'correlation'
                         newcompD['scalefac'] = 1
                         newcompD['offsetadd'] = 0
                         #Create the dstcomp
                         self.proc.dstcompD[bandname] = newcompD
-                        
+
             #Reset the dst peridod
-            self.proc.dstperiodD['timestep'] = 'timespan-%s' %(self.srcperiod.pandasCode)           
+            self.proc.dstperiodD['timestep'] = 'timespan-%s' %(self.srcperiod.pandasCode)
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-            
+
         def _imagecrosstrend(suffixaddon,folderaddon):
             '''
             '''
@@ -1868,7 +1872,7 @@ class MainProc:
                         self.xcrossLagL.append(-n)
 
             ''' CREATE TARGETS'''
-            self.dstIndexD ={} 
+            self.dstIndexD ={}
             dstComp0 = list(self.proc.dstcompD.keys())[0]
 
             for c in self.xcrosscompsL:
@@ -1891,7 +1895,7 @@ class MainProc:
                     #Set dataunit to lag for lag TGTODO
                     newcompD['dataunit'] = 'correlation'
                     newcompD['scalefac'] = 1
-                    newcompD['offsetadd'] = 0                    
+                    newcompD['offsetadd'] = 0
                     #Create the new dstcomp
                     self.proc.dstcompD[bandname] = newcompD
                 #And then the fixed lags to produce
@@ -1909,15 +1913,15 @@ class MainProc:
                     newcompD['cellnull'] = -32768
                     newcompD['dataunit'] = 'correlation'
                     newcompD['scalefac'] = 1
-                    newcompD['offsetadd'] = 0                    
+                    newcompD['offsetadd'] = 0
                     #Create the new dstcomp
                     self.proc.dstcompD[bandname] = newcompD
-                           
+
             #remove the default dst comp - it is just a dummy
             self.proc.dstcompD.pop(dstComp0)
             #Reset the dst peridod
             self.proc.dstperiodD['timestep'] = 'timespan-%s' %(self.srcperiod.pandasCode)
-            print  ('timestep',self.proc.dstperiodD['timestep'])          
+            print  ('timestep',self.proc.dstperiodD['timestep'])
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
 
         def _copycomp():
@@ -1930,28 +1934,28 @@ class MainProc:
                         else:
                             newcompD[item] = self.compD[srccomp][item]
                     #Replace the dstcomp
-                    self.dstCompD[dstCompItem] = newcompD 
+                    self.dstCompD[dstCompItem] = newcompD
                     self.proc.dstcompD[dstCompItem] = newcompD
         if self.verbose > 1:
             print ('    Fixing copycomp',self.proc.paramsD['copycomp'])
-        
+
         if self.proc.paramsD['copycomp'] == 'pass':
             return
-        
+
         elif 'seasonfill' in self.proc.processid.lower() and srccomp == 'season':
             return
-        
-        elif self.proc.paramsD['copycomp'] == '1to1': 
+
+        elif self.proc.paramsD['copycomp'] == '1to1':
             #The dstcomp and srccomp are identical
             self._ReplaceComp(srccomp,srccomp)
             if 'suffix' in self.proc.paramsD and self.proc.paramsD['suffix'] != 'copy':
                 self.proc.dstcompD[srccomp]['suffix'] = self.proc.paramsD['suffix']
-            
-        elif self.proc.paramsD['copycomp'] == 'tractproject': 
+
+        elif self.proc.paramsD['copycomp'] == 'tractproject':
             #tractproject converts an ancillary layer to a tract
             _tractProject()
-            
-        elif self.proc.paramsD['copycomp'] in ['movieframeappend']: 
+
+        elif self.proc.paramsD['copycomp'] in ['movieframeappend']:
 
             for item in self.srcIdDict:
 
@@ -1960,95 +1964,95 @@ class MainProc:
                         print ('setting movie',item)
                         _movie()
 
-                    
-        elif self.proc.paramsD['copycomp'] in ['movieframe','movieclock']: 
+
+        elif self.proc.paramsD['copycomp'] in ['movieframe','movieclock']:
             #dstcomp and srccomp are identical
             _movie()
-        elif self.proc.paramsD['copycomp'] in ['movieframeoverlay']: 
+        elif self.proc.paramsD['copycomp'] in ['movieframeoverlay']:
             #dstcomp and srccomp are identical
             for item in self.srcIdDict:
                 if item[0:4] == 'base':
                     _movie()
-        
+
         elif self.proc.paramsD['copycomp'] in ['template','fromid']:
             _template()
-            
+
         elif self.proc.paramsD['copycomp'] == 'archive':
             _archive()
 
         elif self.proc.paramsD['copycomp'] == 'anytoall':
             _anytoall()
-   
-        elif self.proc.paramsD['copycomp'] == 'exporttobyte': 
+
+        elif self.proc.paramsD['copycomp'] == 'exporttobyte':
             _exporttobyte()
-            
-        elif self.proc.paramsD['copycomp'] == 'exportmap': 
+
+        elif self.proc.paramsD['copycomp'] == 'exportmap':
             _exportmap()
-           
-        elif self.proc.paramsD['copycomp'] == 'seasonalts': 
+
+        elif self.proc.paramsD['copycomp'] == 'seasonalts':
             _seasonalts()
-        
-        elif self.proc.paramsD['copycomp'] == 'DtoMdataunits': 
+
+        elif self.proc.paramsD['copycomp'] == 'DtoMdataunits':
             _DtoMdataunits()
-                                         
-        elif self.proc.paramsD['copycomp'] == 'tostatictimestep':  
+
+        elif self.proc.paramsD['copycomp'] == 'tostatictimestep':
             self.proc.dstperiodD['timestep'] = 'static'
             self.dstperiod = TimeSteps(self.proc.dstperiodD)
-                    
-        elif self.proc.paramsD['copycomp'] == 'applystaticmask':  
+
+        elif self.proc.paramsD['copycomp'] == 'applystaticmask':
             _applystaticmask()
-            
-        elif self.proc.paramsD['copycomp'] == 'subtractseason': 
+
+        elif self.proc.paramsD['copycomp'] == 'subtractseason':
             _subtractseason()
-                                        
-        elif self.proc.paramsD['copycomp'] == 'gdaltranslate': 
+
+        elif self.proc.paramsD['copycomp'] == 'gdaltranslate':
             _gdaaltranslate()
-               
-        elif self.proc.paramsD['copycomp'] == 'seasonfillts': 
+
+        elif self.proc.paramsD['copycomp'] == 'seasonfillts':
             _seasonfillts()
-           
-        elif self.proc.paramsD['copycomp'] == 'trendts': 
+
+        elif self.proc.paramsD['copycomp'] == 'trendts':
             _trendts('')
-            
-        elif self.proc.paramsD['copycomp'] == 'resamplets':         
+
+        elif self.proc.paramsD['copycomp'] == 'resamplets':
             _resamplets()
-                      
-        elif self.proc.paramsD['copycomp'] == 'signiftrend':  
+
+        elif self.proc.paramsD['copycomp'] == 'signiftrend':
             _signiftrend()
-            
-        elif self.proc.paramsD['copycomp'] == 'tpi':  
+
+        elif self.proc.paramsD['copycomp'] == 'tpi':
             _tpitri('tpi')
-        
-        elif self.proc.paramsD['copycomp'] == 'tri':  
+
+        elif self.proc.paramsD['copycomp'] == 'tri':
             _tpitri('tri')
-            
-        elif self.proc.paramsD['copycomp'] == 'roughness':  
+
+        elif self.proc.paramsD['copycomp'] == 'roughness':
             _tpitri('rn')
-            
-        elif self.proc.paramsD['copycomp'] == 'hillshade':  
+
+        elif self.proc.paramsD['copycomp'] == 'hillshade':
             _hillshade()
-            
-        elif self.proc.paramsD['copycomp'] == 'slope':  
+
+        elif self.proc.paramsD['copycomp'] == 'slope':
             _slope()
-            
-        elif self.proc.paramsD['copycomp'] == 'aspect':  
+
+        elif self.proc.paramsD['copycomp'] == 'aspect':
             _aspect()
-            
-        elif self.proc.paramsD['copycomp'] == 'autocorr':  
+
+        elif self.proc.paramsD['copycomp'] == 'autocorr':
             _autocorr()
-            
-        elif self.proc.paramsD['copycomp'] == 'setassimilation':  
+
+        elif self.proc.paramsD['copycomp'] == 'setassimilation':
             _setassimilation()
-            
-        elif self.proc.paramsD['copycomp'] == 'assimilate':  
+
+        elif self.proc.paramsD['copycomp'] == 'assimilate':
             _assimilate()
-            
+
         elif self.proc.paramsD['copycomp'] == 'exportsvg':
             _exportSvg()
-            
-        elif self.proc.paramsD['copycomp'] == 'indexcrosstrend': 
+
+        elif self.proc.paramsD['copycomp'] == 'indexcrosstrend':
             #First set the trends that are requeted
-            #must be set first to allow the correct Timestep to be set in 
+            #must be set first to allow the correct Timestep to be set in
             #_indexcrosstrend
 
             if self.proc.paramsD['naive']:
@@ -2058,7 +2062,7 @@ class MainProc:
                 else:
                     suffixaddon = '%smpl' %(suffixaddon)
             else:
-                
+
                 if self.proc.paramsD['trend'] == 'spline':
                     suffixaddon = folderaddon = '-s'
                 else:
@@ -2068,24 +2072,24 @@ class MainProc:
 
             if len(self.proc.paramsD['kernel']) > 5:
                 suffixaddon =  '%s-k' %(suffixaddon)
-   
+
             if self.proc.paramsD['abs']:
                 suffixaddon =  '%s-abs' %(suffixaddon)
-    
+
             if self.proc.paramsD['yearfac'] > 1:
                 suffixaddon= '%(s)s-a%(y)d' %{'s':suffixaddon, 'y':self.proc.paramsD['yearfac']}
             else:
                 suffixaddon= '%(s)s-a1' %{'s':suffixaddon}
-            _trendts(suffixaddon)  
+            _trendts(suffixaddon)
             _indexcrosstrend(suffixaddon,folderaddon)
             self.proc.paramsD['xcross'] = True
             self.proc.paramsD['xcrosscompsL'] = self.xcrosscompsL
             self.proc.paramsD['xcrossdstL'] = self.xcrossdstL
-            
+
             if len(self.xcrosscompsL) == 0 or len(self.xcrossdstL) == 0 or self.indexL == 0:
                 exit('No destination layer set')
-                    
-        elif self.proc.paramsD['copycomp'] == 'imagecrosstrend': 
+
+        elif self.proc.paramsD['copycomp'] == 'imagecrosstrend':
             #THIS LOPPS TWICE NOW, ONE IS ENOUGH BOTH GIVE SAME DST OUTPUT
             if self.proc.paramsD['naive']:
                 suffixaddon = folderaddon = '-n'
@@ -2093,7 +2097,7 @@ class MainProc:
                     suffixaddon =  '%sadd' %(suffixaddon)
                 else:
                     suffixaddon = '%smpl' %(suffixaddon)
-            else:    
+            else:
                 if self.proc.paramsD['trend'] == 'spline':
                     suffixaddon = folderaddon = '-s'
                 else:
@@ -2118,14 +2122,14 @@ class MainProc:
                 exit('No destination layer set')
             #Set copycomp to pass, as a double pass will ruin the dst comp
             self.proc.paramsD['copycomp'] = 'pass'
-                   
+
         elif self.proc.paramsD['copycomp'] in srcCompL:
             _copycomp()
-            
+
         else:
             print (self.proc.paramsD['copycomp'] )
             NOTDONE
-        
+
     def _ReplaceComp(self,srccomp,dstcomp):
         newcompD = {}
         for item in self.compD[srccomp]:
@@ -2136,7 +2140,7 @@ class MainProc:
         #Replace the dstcomp
         #self.dstCompD[srccomp] = newcompD
         self.proc.dstcompD[dstcomp] = newcompD
-               
+
     def _SetLocations(self):
         '''
         '''
@@ -2148,9 +2152,9 @@ class MainProc:
             if defregionid == None:
                 exitstr ='No valid dfault region identified for paramer src_defregid'
                 exit(exitstr)
-            #Only defaut region accepted 
+            #Only defaut region accepted
             self.srclocations = Location(self.proc.paramsD, self.proc.processid, '*', '*', defregionid[0], self.proc.systemD['srcsystem'], self.proc.systemD['srcdivision'],self.session)
-        else:    
+        else:
             self.srclocations = Location(self.proc.paramsD, self.proc.processid, self.proc.userProj.siteid, self.proc.userProj.tractid, self.proc.userProj.defregion, self.proc.systemD['srcsystem'], self.proc.systemD['srcdivision'],self.session)
 
         if 'dst_defregid' in self.proc.paramsD:
@@ -2158,7 +2162,7 @@ class MainProc:
 
         else:
             self.dstlocations = Location(self.proc.paramsD, self.proc.processid, self.proc.userProj.siteid, self.proc.userProj.tractid, self.proc.userProj.defregion, self.proc.systemD['dstsystem'], self.proc.systemD['dstdivision'],self.session)
- 
+
     def _SetLayers(self):
         '''
         '''
@@ -2170,7 +2174,7 @@ class MainProc:
         if self.verbose > 1:
             print ('    Setting destination layers')
         self._SetDstLayers()
-    
+
     def _SetSrcLayers(self):
         '''
         '''
@@ -2210,7 +2214,7 @@ class MainProc:
                         self.srcLayerD[locus][datum][srccomp] = MovieFrame(self.srcCompD[srccomp], self.srclocations.locusD[locus], datumD, self.srcpath)
 
                     else:
-    
+
                         if 'seasonfill' in self.proc.processid.lower() and srccomp == 'season':
                             #print ('                season')
                             #This is for the special season comp used for combining a full timesereies and a seasonal timeseries
@@ -2258,7 +2262,7 @@ class MainProc:
         print (self.proc.srcperiodD)
         BALLE
         '''
-     
+
 
     def _SetDstLayers(self):
         '''
@@ -2288,7 +2292,7 @@ class MainProc:
                             PLEASEADD
                     else:
                         datumD = self.dstperiod.datumD[datum]
-  
+
                     if self.dstCompD[comp].celltype in ['movieframe','movieframeoverlay','movieframeappend']:
                         self.dstLayerD[locus][datum][comp] = MovieFrame(self.dstCompD[comp], self.dstlocations.locusD[locus], datumD, self.dstpath)
                     elif self.dstCompD[comp].celltype == 'movieclock':
